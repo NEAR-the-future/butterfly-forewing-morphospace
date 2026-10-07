@@ -59,16 +59,7 @@ def detect_red_dot(image, min_dot_size=20):
 
 
 def detect_blue_circle(image, min_area=20):
-    """
-    检测原图中的蓝色圆圈，并返回其中心点 (x, y)。
-    若未检测到则返回 None。
 
-    逻辑：
-    1. 在 HSV 空间阈值提取蓝色
-    2. 形态学去噪并连接圆环
-    3. 取面积最大的蓝色连通域
-    4. 用最小外接圆中心作为手动翼尖
-    """
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
     lower_blue = np.array([90, 60, 60])
@@ -97,21 +88,16 @@ def detect_blue_circle(image, min_area=20):
 
 
 def extract_edge_profile(image, red_dot_coords=None):
-    """
-    Sub-pixel accurate edge extraction.
-    Returns edge points with floating-point coordinates.
-    """
 
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     gray = gray.astype(np.float32)
 
-    # --- 1. Canny for coarse edge mask ---
     edges = cv2.Canny(gray.astype(np.uint8), 30, 100)
-    # --- NEW: remove red-dot edges (and its boundary) ---
+
     red_mask = make_red_mask(image)
-    red_mask = cv2.dilate(red_mask, np.ones((9, 9), np.uint8), iterations=1)  # 视红点大小可调 7/9/11
+    red_mask = cv2.dilate(red_mask, np.ones((9, 9), np.uint8), iterations=1)  
     #edges[red_mask > 0] = 0
-    # --- 2. Sobel gradients ---
+
     gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
     gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
 
@@ -122,13 +108,13 @@ def extract_edge_profile(image, red_dot_coords=None):
     h, w = gray.shape
     edge_points = []
 
-    # --- 3. Sub-pixel localization ---
+  
     ys, xs = np.where(edges > 0)
     for x, y in zip(xs, ys):
         dx = nx[y, x]
         dy = ny[y, x]
 
-        # sample gradient magnitude along normal direction
+        
         def sample(t):
             xx = x + dx * t
             yy = y + dy * t
@@ -151,10 +137,10 @@ def extract_edge_profile(image, red_dot_coords=None):
 
         edge_points.append((float(xs_sub), float(ys_sub)))
 
-    # --- 4. Contour-based ordering (robust, no jump segments) ---
+    
     edge_points = sort_points_by_contour(edges, edge_points, start_xy=red_dot_coords)
 
-    # Return BOTH: contour (ordered) and red dot separately if you want
+    
     return edge_points, red_dot_coords
 
 
@@ -182,7 +168,7 @@ def sort_points_by_continuity(points, start_point):
     return sorted_pts
 
 def make_red_mask(image):
-    """Return binary mask (uint8 0/255) for red dot region in RGB image."""
+
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
     lower_red1 = np.array([0, 100, 100])
@@ -200,7 +186,7 @@ def make_red_mask(image):
     return red_mask
 
 def _rotate_points_to_start(points, start_xy):
-    """Rotate ordered points so that the first point is closest to start_xy."""
+
     if not points:
         return points
     pts = np.asarray(points, dtype=float)
@@ -211,15 +197,7 @@ def _rotate_points_to_start(points, start_xy):
 
 
 def sort_points_by_contour(edges, subpixel_points, start_xy=None):
-    """
-    Use cv2.findContours to get a true boundary order, then (optionally) map each contour
-    pixel vertex to the nearest subpixel point to keep float precision.
 
-    edges: uint8 Canny mask (0/255)
-    subpixel_points: list[(float x, float y)] from your subpixel extraction
-    start_xy: (x,y) to rotate the contour start (e.g. red dot)
-    """
-    # Make edges more connected so the contour is a single loop
     kernel = np.ones((3, 3), np.uint8)
     edges2 = cv2.dilate(edges, kernel, iterations=1)
 
@@ -229,15 +207,13 @@ def sort_points_by_contour(edges, subpixel_points, start_xy=None):
 
     # Pick the largest external contour
     c = max(contours, key=cv2.contourArea)
-    contour_pts = c[:, 0, :]  # (N,2) int, [x,y]
+    contour_pts = c[:, 0, :]  
 
     # Rotate start to be closest to start_xy (red dot)
     contour_list = [(float(x), float(y)) for x, y in contour_pts]
     if start_xy is not None:
         contour_list = _rotate_points_to_start(contour_list, start_xy)
 
-    # If you don't care about subpixel precision for ordering, you can just return contour_list.
-    # Below: map each contour vertex to nearest subpixel point (keeps float coords, keeps contour order).
     if not subpixel_points:
         return contour_list
 
@@ -249,7 +225,7 @@ def sort_points_by_contour(edges, subpixel_points, start_xy=None):
         j = int(np.argmin(d2))
         ordered.append((float(sp[j, 0]), float(sp[j, 1])))
 
-    # Optional: remove consecutive duplicates (same subpixel chosen repeatedly)
+
     dedup = [ordered[0]]
     for p in ordered[1:]:
         if (p[0] - dedup[-1][0]) ** 2 + (p[1] - dedup[-1][1]) ** 2 > 1e-12:
@@ -258,25 +234,22 @@ def sort_points_by_contour(edges, subpixel_points, start_xy=None):
     return dedup
 
 def transform_points_by_span(contour, root, tip, force_y_positive=True, normalize_span=True):
-    # 1. 平移，根点移到 (0, 0)
     contour_translated = contour - root
     
-    # 2. 旋转：使得 root -> tip 对齐 x 轴
+
     span_x = tip[0] - root[0]
     span_y = tip[1] - root[1]
-    angle = np.arctan2(span_y, span_x)  # 计算旋转角度
+    angle = np.arctan2(span_y, span_x)  
     M = cv2.getRotationMatrix2D((0, 0), np.degrees(angle), 1.0)
     contour_rotated = cv2.transform(contour_translated.reshape(-1, 1, 2), M).reshape(-1, 2)
     
-    # 3. 归一化：将 span 变为 1
     if normalize_span:
         span_len = np.linalg.norm(tip - root)
         contour_normalized = contour_rotated / span_len
     else:
         contour_normalized = contour_rotated
 
-    # 4. 确保翼型大部分在 y > 0 的区域
     if force_y_positive and np.mean(contour_normalized[:, 1]) < 0:
-        contour_normalized[:, 1] *= -1  # 翼型上下翻转，确保 y > 0
+        contour_normalized[:, 1] *= -1  # make sure y > 0
     
     return contour_normalized

@@ -77,7 +77,7 @@ def parse_args():
         help="Comma-separated feature column list. Default: all numeric columns except label/name.",
     )
 
-    # Default is intentionally small for the first timing run: C(11, 10) + C(11, 11) = 12.
+    # Default is intentionally small for the first timing run
     parser.add_argument("--min-features", type=int, default=10)
     parser.add_argument("--max-features", type=int, default=11)
     parser.add_argument(

@@ -1,18 +1,3 @@
-"""Stage 2: transform unseen rows into a frozen reference UMAP space.
-
-The fitted UMAP reducer, KMeans model, and reference coordinates come
-from a completed hard-guard ``fine_search_reference_umap_kmeans.py`` run. Unseen observations are
-embedded with ``umap_reducer.transform`` and provisionally assigned with
-``kmeans_model.predict``; neither frozen model is refitted here.
-
-An independent reference-only OOD calibration is then applied in the complete
-11-dimensional morphology space.  It may reject a provisional KMeans
-assignment, but it never changes the stored UMAP coordinates.
-
-Wing pairing uses Euclidean nearest neighbors among all reference rows in
-the frozen two-dimensional UMAP space.  Morphology-space nearest neighbors
-are retained only in the separate OOD assessment for diagnostic purposes.
-"""
 
 import argparse
 import colorsys
@@ -686,7 +671,7 @@ def assess_reference_only_ood(
             f"{all_missing_features}"
         )
 
-    # Every calibration parameter comes only from the frozen reference rows.
+    
     reference_medians = np.nanmedian(reference_raw, axis=0)
     reference_imputed = np.where(
         np.isnan(reference_raw), reference_medians[None, :], reference_raw
@@ -997,9 +982,6 @@ def plot_true_label_projection(
         input_points.set_visible(False)
         type_legend.set_visible(False)
         input_legend.set_visible(False)
-        # Keep the existing axes layout, limits, and region artists exactly as
-        # drawn above, even when unseen points extend beyond the reference data.
-        # In particular, do not rerun tight_layout after hiding the legends.
         save_figure_png_and_svg(reference_output_base)
     plt.close(fig)
 
@@ -1012,12 +994,7 @@ def build_nearest_reference_table(
     name_col,
     label_col,
 ):
-    """Pair each input with the closest reference in the plotted UMAP space.
 
-    Search all reference rows, without restricting candidates by KMeans
-    cluster.  Exact ties use the first row in the frozen reference table.
-    OOD validity is assessed independently in morphology space.
-    """
     input_coordinates = np.asarray(input_coordinates, dtype=np.float64)
     reference_coordinates = np.asarray(reference_coordinates, dtype=np.float64)
     for role, coordinates, expected_rows in (
@@ -1109,9 +1086,6 @@ def main(ood_policy=OOD_POLICY_STRICT_REJECTION):
     reference_hash_before = sha256_array(reference_coordinates_before)
     reducer_hash_before = sha256_array(reducer_embedding_before)
 
-    # Project each unseen observation independently. This exactly matches the
-    # one-row transform used by the exploration-stage neighbor guard and avoids
-    # batch-size-dependent transform coordinates.
     input_coordinates = transform_rows_independently(reducer, input_processed)
 
     reference_coordinates_after = np.asarray(artifact["reference_coordinates"], dtype=np.float64)
@@ -1172,8 +1146,7 @@ def main(ood_policy=OOD_POLICY_STRICT_REJECTION):
         name_col,
         label_col,
     )
-    # These flags allow downstream plots to exclude invalid inputs without
-    # mixing the morphology-space OOD distance with the UMAP pairing distance.
+
     for column in ("OOD_Status", "OOD_Threshold_Exceeded", "OOD_Rejected"):
         nearest[column] = ood_assessment[column].to_numpy()
 

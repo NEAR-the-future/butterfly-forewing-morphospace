@@ -1,9 +1,3 @@
-#--------------------------------------------
-#
-# Functions called in the Main driver
-#
-#--------------------------------------------
-
 import traceback
 import image_tool
 from main_func import *
@@ -12,62 +6,45 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def setup_directories():
-    """
-    Create necessary directory structure.
-    
-    """
 
     base_dir = Path(__file__).parent
     import_dir = base_dir / "wing_import"
     visual_dir = base_dir / "edge_visual_data"
     
-    # Create directories if none exist
+    
     import_dir.mkdir(exist_ok=True)
     visual_dir.mkdir(exist_ok=True)
     
     return base_dir, import_dir, visual_dir
 
 
-#--------------------------------------------
 
 def find_image_files(import_dir):
-    """
-    Find PNG image files (case insensitive)
-    
-    """
+
     image_files = []
     
-    # Get all files in directory
+
     for file_path in import_dir.iterdir():
         if not file_path.is_file():
             continue
             
-        # Check if file ends with .png (case insensitive)
+
         if file_path.suffix.lower() == '.png':
             image_files.append(file_path)
     
     return sorted(image_files)
 
 
-#--------------------------------------------
 
 def process_single_image(image_path, base_dir):
-    """
-    Process a single butterfly wing image.
 
-    Output
-    ----------
-    dict            None if failed, empty if success
-
-    """
     print(f"\n{'='*60}")
     print(f"Processing: {image_path.name}")
     
     try:
-        # Import image
+ 
         original = image_tool.import_image(str(image_path))
 
-        # Detect root location
         red_dot = image_tool.detect_red_dot(original)
         
         if not red_dot:
@@ -83,7 +60,6 @@ def process_single_image(image_path, base_dir):
             print("ERROR: No edge points found. Check image quality.")
             return None
         
-        # Save coordinates to csv
         output_csv = base_dir / f"wing_coordinate/{image_path.stem}_edge_coordinates.csv"
         with open(output_csv, 'w') as f:
             f.write("X,Y,is_wing_root\n")
@@ -101,12 +77,8 @@ def process_single_image(image_path, base_dir):
         return None
 
 
-#--------------------------------------------
-
 def output_sections(original, edge_points, wing_root, wing_tip, visual_dir, name):
-    """
-    新版：仅用于检查提取效果（原图 + 提取轮廓点 + root/tip + span line）
-    """
+
     try:
         fig, ax = plt.subplots(1, 1, figsize=(10, 6))
         ax.imshow(original)
@@ -136,10 +108,7 @@ def output_sections(original, edge_points, wing_root, wing_tip, visual_dir, name
 
 
 def output_planform(contour_transformed, root_transformed, tip_transformed, centroid, visual_dir, name):
-    """
-    新版：输出旋转+归一化后的轮廓（不画弦线，不平移到第一象限）
-    x: spanwise, y: chordwise
-    """
+
     try:
         pts = np.asarray(contour_transformed, dtype=float).reshape(-1, 2)
 
@@ -147,11 +116,10 @@ def output_planform(contour_transformed, root_transformed, tip_transformed, cent
 
         ax.plot(pts[:, 0], pts[:, 1], 'r-', linewidth=1.5, label='Contour (rot+norm)')
 
-        # 标注 root/tip（一般 root=(0,0), tip≈(1,0)）
+        # root=(0,0), tip=(1,0)
         ax.plot(root_transformed[0], root_transformed[1], 'kx', markersize=10, label='Root (trans)')
         ax.plot(tip_transformed[0],  tip_transformed[1],  'k+', markersize=10, label='Tip (trans)')
 
-        # centroid（来自 OpenCV moments，坐标系与此图一致）
         if centroid is not None and np.all(np.isfinite(centroid)):
             ax.plot(centroid[0], centroid[1], 'ko', markersize=6, label='Centroid')
 

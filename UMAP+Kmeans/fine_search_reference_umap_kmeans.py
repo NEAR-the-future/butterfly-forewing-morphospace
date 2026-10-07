@@ -1,9 +1,3 @@
-"""Refine archived feature sets with three hard guards and unchanged J_morph.
-
-Default: 10 feature sets x 15 UMAP seeds x 10 neighbors x 10 min_dist,
-with K=3..9. Each embedding is reused for all K values. SQLite checkpoints
-allow exact-plan resume. Use --dry-run to inspect the plan before fitting.
-"""
 
 import argparse
 import hashlib
@@ -114,7 +108,7 @@ def shortlist_archive(path, count):
     frame["score"] = pd.to_numeric(frame["score"], errors="raise")
     valid = frame["selection_valid"].astype(str).str.lower().eq("true")
     eligible = frame.loc[valid & np.isfinite(frame["score"])].copy()
-    # Distinct feature sets, not the first N parameter/seed rows.
+
     selected = (eligible.sort_values(
         ["score", "silhouette", "feature_signature", "umap_n_neighbors", "umap_min_dist",
          "kmeans_n_clusters"], ascending=[False, False, True, True, True, True],
@@ -160,7 +154,7 @@ def prepare(args):
             raise ValueError(f"Each {label} must be >=2 and smaller than the reference sample count.")
     if any(value > reducer.spread for value in args.min_dist):
         raise ValueError("min_dist cannot exceed the saved UMAP spread.")
-    # Numerically verify the reconstructed scorer against the frozen baseline.
+
     baseline_metrics = evaluate_partition(old_z, old_labels,
                                          target_range=(min(args.k_values), max(args.k_values)))
     if not np.isclose(baseline_metrics["score"], artifact["best_result"]["score"],
@@ -296,7 +290,7 @@ def export_results(connection, output, plan, complete):
     summary["all_seeds_completed"] = summary["seeds_completed"].eq(len(plan["seeds"]))
     summary.to_csv(output / "seed_summary.csv", index=False, encoding="utf-8-sig")
     if complete and plan["compute_stability"]:
-        # Compute pairwise ARI within each fixed (features, neighbors, min_dist, K).
+        
         labels_by_group = {}
         for payload, packed in connection.execute("SELECT rows_json, labels FROM runs"):
             rows = json.loads(payload)

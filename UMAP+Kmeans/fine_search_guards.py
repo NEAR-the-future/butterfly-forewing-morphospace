@@ -1,10 +1,3 @@
-"""Hard guards using reference-only full-feature calibration and frozen queries.
-
-The global threshold preserves the supplied baseline model; it is not an
-independently established universal cutoff. Query rank checks use the selected
-2D nearest reference row's rank in full feature space, never cluster labels.
-"""
-
 import json
 
 import numpy as np
@@ -57,7 +50,7 @@ def build_guard_context(reference, inputs, full_features, name_col, baseline_z,
     np.fill_diagonal(ref_distances, np.inf)
     loo_nn = np.min(ref_distances, axis=1)
     threshold = float(np.quantile(loo_nn, ood_quantile))
-    # Direct Euclidean norm matches the original exact-neighbor guard.
+
     distances = np.linalg.norm(full_queries[:, None, :] - full_x[None, :, :], axis=2)
     closest = np.argmin(distances, axis=1)
     nearest_distances = distances[np.arange(len(inputs)), closest]
@@ -87,7 +80,7 @@ def build_guard_context(reference, inputs, full_features, name_col, baseline_z,
                       "ood_passed": bool(nearest_distances[i] <= threshold)}
         assessments.append(assessment)
         if i in selected:
-            # All references, not merely top50: ties at the boundary are auditable.
+            
             order = np.argsort(distances[i], kind="stable")
             query_neighbors.append({"input_row_index": i, "input_name": name,
                                     "reference_indices_by_distance": order.tolist(),

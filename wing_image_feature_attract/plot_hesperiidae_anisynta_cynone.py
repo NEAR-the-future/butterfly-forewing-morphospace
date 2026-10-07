@@ -335,7 +335,6 @@ def plot_wing_schematic(plot_data, output_dir, name):
 
     fig, ax = plt.subplots(figsize=(8.0, 4.8))
 
-    # Keep the axes behind the outline, as in the original schematic.
     arrow_style = dict(
         arrowstyle="-|>",
         color="black",
@@ -359,7 +358,6 @@ def plot_wing_schematic(plot_data, output_dir, name):
         zorder=1,
     )
 
-    # This is exactly the normalized contour used by the detailed plot below.
     ax.plot(
         contour[:, 0],
         contour[:, 1],

@@ -71,7 +71,7 @@ def same_partition(left: np.ndarray, right: np.ndarray) -> bool:
 
 
 def align_to_reference(reference: np.ndarray, candidate: np.ndarray) -> np.ndarray:
-    """Relabel a candidate partition to maximize agreement with a reference."""
+    
 
     reference_values = np.unique(reference)
     candidate_values = np.unique(candidate)

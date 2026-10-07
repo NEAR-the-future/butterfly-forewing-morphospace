@@ -1,4 +1,3 @@
-"""Load and validate frozen reference artifacts without a seed-experiment CLI."""
 
 import hashlib
 

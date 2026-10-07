@@ -1,10 +1,3 @@
-"""Pure, float64 Jmorph partition metrics for the fine UMAP search.
-
-The seven score terms and the 10th--90th percentile bounding-box occupancy
-match the original search. Quality flags are diagnostics: they never gate the
-score or add a target-K bonus. This module does not fit models or set threads.
-"""
-
 import numpy as np
 from sklearn.metrics import davies_bouldin_score, silhouette_score
 
@@ -89,19 +82,7 @@ def evaluate_partition(
     min_cluster_size_frac=0.03,
     target_range=(3, 9),
 ):
-    """Return scalar/string metrics and quality flags without filtering a row.
 
-    ``class_count_valid``/``partition_valid`` mean 2 <= observed groups < n;
-    the former legacy 4--30 class-count gate is intentionally not applied to
-    the new K=3--9 search. Target membership uses the *observed* group count;
-    callers should separately record their requested K. ``selection_valid``
-    combines the diagnostic flags, without changing the score.
-
-    A degenerate partition receives NaN silhouette/DBI/score and a status.
-    Malformed or nonfinite input raises ValueError; unexpected metric errors
-    propagate, rather than being concealed as a failed candidate. Silhouette
-    and DBI are each computed once, using every row and float64 coordinates.
-    """
     z = np.asarray(Z, dtype=np.float64)
     labels = np.asarray(labels)
     if z.ndim != 2 or z.shape[1] == 0 or labels.ndim != 1 or len(z) != len(labels):
@@ -135,7 +116,7 @@ def evaluate_partition(
     silhouette_valid = bool(np.isfinite(silhouette) and silhouette >= silhouette_threshold)
     score = np.nan
     if valid and np.isfinite(silhouette):
-        # Preserve the original float64 arithmetic order for archived scores.
+
         score = float(
             SCORE_WEIGHTS["silhouette_weight"] * silhouette
             - SCORE_WEIGHTS["dbi_weight"] * (dbi if np.isfinite(dbi) else 0.0)

@@ -63,8 +63,6 @@ def farthest_point_from_root(edge_points, root):
 
 
 def algorithm_detected_tip(edge_points, root):
-    # shape_tool currently prints window-angle diagnostics internally; keep this
-    # validation script quiet while preserving the same algorithm.
     with contextlib.redirect_stdout(io.StringIO()):
         tip = shape_tool.tip_locate(
             edge_points,

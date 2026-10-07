@@ -1,12 +1,3 @@
-"""Stage 1: fit reference-only UMAP spaces and apply one transform-only guard.
-
-All preprocessors, UMAP reducers, and KMeans models are fitted exclusively on
-the 383 reference rows.  ``AirPulse`` is read from
-``summary_input-all.xlsx`` only as a validation observation: a candidate can be
-selected only when its nearest reference sample is identical in the fixed
-11-dimensional standardized feature space and the transform-only UMAP space.
-"""
-
 import argparse
 import hashlib
 import json
@@ -16,9 +7,6 @@ import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Keep UMAP/spectral linear algebra on the old high-throughput thread setting.
-# KMeans is restricted separately and only while its seven k values are being
-# evaluated, so the Windows MKL workaround does not throttle UMAP.
 try:
     SEARCH_OMP_THREADS = max(
         1,
@@ -31,7 +19,7 @@ try:
 except ValueError:
     KMEANS_SAFE_THREADS = 2
 os.environ["OMP_NUM_THREADS"] = str(SEARCH_OMP_THREADS)
-# Do not globally set MKL_NUM_THREADS: UMAP's spectral initialisation uses it.
+# Do not globally set MKL_NUM_THREADS!! UMAP's spectral initialisation uses it.
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 warnings.filterwarnings(
     "ignore",
@@ -53,9 +41,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from threadpoolctl import threadpool_limits
 
-# The missing historical helper was recovered byte-for-byte from the sibling
-# dimensionless/nondim/write _working/auto_umap_feature_set_search.py backup.
-# Its scoring and plotting functions are retained without modification.
 import auto_umap_feature_set_search as base
 
 
@@ -63,7 +48,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_REFERENCE_PATH = SCRIPT_DIR / "summary_11.xlsx"
 DEFAULT_GUARD_INPUT_PATH = SCRIPT_DIR / "summary_input-all.xlsx"
 DEFAULT_GUARD_INPUT_NAME = "AirPulse"
-# Keep the copied historical reference_umap_feature_search baseline untouched.
+
 DEFAULT_OUTPUT_DIR = SCRIPT_DIR / "explore_runs" / datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 MODEL_ARTIFACT_NAME = "best_reference_umap_model.joblib"
 ARTIFACT_SCHEMA_VERSION = 1
@@ -180,7 +165,7 @@ def read_table(path, sheet=None):
 
 
 def resolve_search_parameter_grid(n_samples, args):
-    """Resolve a compact default grid while preserving an opt-in full grid."""
+    
     if args.search_mode == "full":
         return base.resolve_parameter_grid(n_samples, args)
 
@@ -189,7 +174,6 @@ def resolve_search_parameter_grid(n_samples, args):
     explicit_clusters = base.parse_int_list(args.kmeans_n_clusters_list)
 
     if explicit_neighbors is None:
-        # Covers the current best (3), the historical best (4/5), and wider scales.
         n_neighbors = [3, 4, 5, 8, 12, 20]
     else:
         n_neighbors = explicit_neighbors
@@ -200,7 +184,7 @@ def resolve_search_parameter_grid(n_samples, args):
     )
 
     if explicit_min_dist is None:
-        # Includes both current 0.1 and historical 0.01 optima.
+        
         min_dist = [0.0, 0.01, 0.05, 0.10, 0.20]
     else:
         min_dist = sorted(set(float(value) for value in explicit_min_dist))
@@ -371,7 +355,7 @@ def evaluate_transform_neighbor_guard(
 
 
 def evaluate_kmeans_batch_with_safe_threads(coordinates, cluster_counts, args):
-    """Evaluate all k values under one temporary Windows/MKL-safe thread limit."""
+    
     evaluations = []
     with threadpool_limits(limits=KMEANS_SAFE_THREADS, user_api="openmp"):
         for clusters in cluster_counts:
@@ -598,9 +582,7 @@ def run_search(
                         row.update(guard_result)
                         row["selection_valid_before_neighbor_guard"] = auto_selection_valid
                         row["auto_selection_valid"] = auto_selection_valid
-                        # Neighbor preservation for AirPulse is the
-                        # hard eligibility rule. Other quality flags remain
-                        # ranking criteria among guard-passing candidates.
+
                         row["selection_valid"] = bool(
                             guard_result["guarded_selection_valid"]
                         )

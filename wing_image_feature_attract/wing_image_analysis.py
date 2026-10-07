@@ -9,9 +9,6 @@ import cv2
 from scipy.signal import savgol_filter
 
 
-# =========================================================
-# 基础工具
-# =========================================================
 def nearest_contour_index(contour, point):
     pts = np.asarray(contour, dtype=float).reshape(-1, 2)
     p = np.asarray(point, dtype=float).reshape(2,)
@@ -32,13 +29,7 @@ def curve_length(pts, closed=False):
 
 
 def smooth_contour(contour, window_frac=0.03, polyorder=3):
-    """
-    对闭合轮廓做一次 Savitzky-Golay 平滑，并返回：
-    1) 平滑后的轮廓点
-    2) 平滑后的周长
 
-    注意：后续所有“非面积/非矩”特征都基于这一个平滑结果，不重复平滑。
-    """
     pts = np.asarray(contour, dtype=float).reshape(-1, 2)
     n = len(pts)
 
@@ -50,7 +41,6 @@ def smooth_contour(contour, window_frac=0.03, polyorder=3):
     if win % 2 == 0:
         win += 1
 
-    # Savgol 要求 polyorder < win
     win = min(win, n - 1 if n % 2 == 0 else n)
     if win % 2 == 0:
         win -= 1
@@ -68,7 +58,6 @@ def smooth_contour(contour, window_frac=0.03, polyorder=3):
     x = pts[:, 0]
     y = pts[:, 1]
 
-    # 周期 padding，适用于闭合轮廓
     x_pad = np.r_[x[-win:], x, x[:win]]
     y_pad = np.r_[y[-win:], y, y[:win]]
 
@@ -86,9 +75,7 @@ def smooth_contour(contour, window_frac=0.03, polyorder=3):
 
 def output_planform_smooth_compare(contour_transformed, contour_smoothed, root_transformed,
                                    tip_transformed, centroid, visual_dir, name):
-    """
-    输出对比图：原轮廓 vs 平滑轮廓（同坐标系：x=spanwise, y=chordwise）
-    """
+
     try:
         pts = np.asarray(contour_transformed, dtype=float).reshape(-1, 2)
         spt = np.asarray(contour_smoothed, dtype=float).reshape(-1, 2)
@@ -120,10 +107,7 @@ def output_planform_smooth_compare(contour_transformed, contour_smoothed, root_t
 
 
 def compute_geometry_from_contour(contour_1x2):
-    """
-    contour_1x2: np.ndarray shape (N,1,2) float32/int32
-    return: dict with area/perimeter/raw moments/centroid/central moments
-    """
+
     area = cv2.contourArea(contour_1x2)
     perimeter = cv2.arcLength(contour_1x2, True)
     M = cv2.moments(contour_1x2)
@@ -145,14 +129,9 @@ def compute_geometry_from_contour(contour_1x2):
     }
 
 
-# =========================================================
-# 特征计算
-# =========================================================
 
 def max_chord_length(contour, n_bins=None):
-    """
-    最大弦长：沿 spanwise(x) 方向切片，计算每个切片的上下包络厚度 max(y)-min(y)，取最大值。
-    """
+
     pts = np.asarray(contour, dtype=float).reshape(-1, 2)
     if len(pts) < 3:
         return np.nan
@@ -298,11 +277,6 @@ def tip_area_to_wing_area_ratio(contour, wing_area, tip=(1.0, 0.0), radius=0.1, 
 
 
 def extract_two_paths_between_indices(contour, idx_a, idx_b):
-    """
-    在闭合轮廓上，从 idx_a 到 idx_b 提取两条路径：
-    path1: 正向走
-    path2: 反向绕回去
-    """
     pts = np.asarray(contour, dtype=float).reshape(-1, 2)
     n = len(pts)
 
@@ -320,12 +294,6 @@ def extract_two_paths_between_indices(contour, idx_a, idx_b):
     return path1, path2
 
 def split_le_te_by_root_tip(contour, root_point=(0.0, 0.0), tip_point=(1.0, 0.0)):
-    """
-    基于闭合轮廓拓扑拆分前缘/后缘：
-    1. 找 root / tip 在轮廓上的最近点索引
-    2. 提取 root->tip 两条路径
-    3. 较短路径作为前缘 LE，较长路径作为后缘 TE
-    """
     pts = np.asarray(contour, dtype=float).reshape(-1, 2)
     if len(pts) < 4:
         return pts, pts
@@ -351,9 +319,6 @@ def split_le_te_by_root_tip(contour, root_point=(0.0, 0.0), tip_point=(1.0, 0.0)
     return le, te
 
 def curvature(points):
-    """
-    基于离散点计算局部曲率
-    """
     pts = np.asarray(points, dtype=float).reshape(-1, 2)
     if len(pts) < 5:
         return np.full(len(pts), np.nan)
@@ -374,15 +339,6 @@ def curvature(points):
 
 
 def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=200, return_details=False):
-    """
-    翼尖曲率：
-    1) 在闭合轮廓中找到离 tip 最近的轮廓点索引
-    2) 沿轮廓拓扑顺序向前/向后截取翼尖邻域连续弧段
-    3) 用弧长参数 s 对该弧段做参数曲线拟合：x=x(s), y=y(s)
-    4) 用参数曲线曲率公式计算局部 bending，作为翼尖曲率代表
-
-    这样不会受到翼尖附近“接近竖直，y 不是 x 的单值函数”的影响。
-    """
     pts = np.asarray(contour, dtype=float).reshape(-1, 2)
     tip = np.asarray(tip, dtype=float).reshape(2,)
 
@@ -401,18 +357,12 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
 
     n = len(pts)
 
-    # -------------------------------------------------
-    # 1. 找到离 tip 最近的轮廓点
-    # -------------------------------------------------
+
     d = np.linalg.norm(pts - tip, axis=1)
     idx_tip = int(np.argmin(d))
 
-    # -------------------------------------------------
-    # 2. 提取“沿轮廓连续”的翼尖邻域，而不是直接取所有欧氏圆内点再按 x 排序
-    # -------------------------------------------------
     local_idx = [idx_tip]
 
-    # 往前走
     acc = 0.0
     i = idx_tip
     while True:
@@ -426,7 +376,6 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
         if j == idx_tip:
             break
 
-    # 往后走
     acc = 0.0
     i = idx_tip
     forward_idx = []
@@ -441,7 +390,6 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
         if j == idx_tip:
             break
 
-    # 组合成按轮廓顺序排列的连续弧段
     # reverse(backward) + tip + forward
     backward_idx = local_idx[1:]
     backward_idx = backward_idx[::-1]
@@ -452,7 +400,6 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
 
     fallback_used = False
 
-    # 点太少时，回退到“最近的连续若干点”，仍保持拓扑顺序
     if len(local_pts) < 7:
         fallback_used = True
         half_win = 7
@@ -461,8 +408,6 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
                       [((idx_tip + k) % n) for k in range(1, half_win + 1)]
         ordered_idx = np.array(ordered_idx, dtype=int)
         local_pts = pts[ordered_idx]
-
-    # 去掉可能重复点
     keep = [0]
     for i in range(1, len(local_pts)):
         if np.linalg.norm(local_pts[i] - local_pts[keep[-1]]) > 1e-10:
@@ -482,9 +427,6 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
             }
         return np.nan
 
-    # -------------------------------------------------
-    # 3. 用弧长参数 s 做参数拟合：x(s), y(s)
-    # -------------------------------------------------
     seg = np.diff(local_pts, axis=0)
     ds = np.hypot(seg[:, 0], seg[:, 1])
     s = np.r_[0.0, np.cumsum(ds)]
@@ -503,7 +445,6 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
             }
         return np.nan
 
-    # 归一化参数，拟合更稳定
     s_norm = s / total_len
 
     deg = min(poly_deg, len(local_pts) - 1)
@@ -550,12 +491,10 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
     ddx = ddpx(s_eval)
     ddy = ddpy(s_eval)
 
-    # 参数曲线曲率公式
     denom = (dx * dx + dy * dy) ** 1.5
     denom[denom < 1e-12] = np.nan
     k = np.abs(dx * ddy - dy * ddx) / denom
 
-    # bending 作为翼尖曲率代表
     tip_k = float(np.nanmean(k)) if not np.all(np.isnan(k)) else np.nan
 
     if return_details:
@@ -573,12 +512,6 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
 
 
 def _prepare_edge_for_fit(edge_pts, n_samples=200):
-    """
-    将前缘/后缘处理成适合 y=f(x) 拟合的形式：
-    1. 按 x 排序
-    2. 对相近 x 做聚合，减少多值和噪声
-    3. 插值到统一采样点
-    """
     pts = np.asarray(edge_pts, dtype=float).reshape(-1, 2)
     if len(pts) < 6:
         return None, None
@@ -587,7 +520,6 @@ def _prepare_edge_for_fit(edge_pts, n_samples=200):
     x = pts[:, 0]
     y = pts[:, 1]
 
-    # 合并接近的 x，避免多值和抖动
     x_round = np.round(x, 4)
     uniq_x = np.unique(x_round)
 
@@ -610,7 +542,6 @@ def _prepare_edge_for_fit(edge_pts, n_samples=200):
     xg = xg[order]
     yg = yg[order]
 
-    # 去重，保证 interp 合法
     keep = np.r_[True, np.diff(xg) > 1e-8]
     xg = xg[keep]
     yg = yg[keep]
@@ -625,18 +556,6 @@ def _prepare_edge_for_fit(edge_pts, n_samples=200):
 
 
 def fit_edge_curve(edge_pts, poly_deg=3, n_samples=400, fit_x_range=(0.1, 0.9)):
-    """
-    对前缘/后缘做整体拟合，但只使用中段 x 范围内的点：
-    - fit_x_range=(0.1, 0.9) 表示只取 10%-90% span 的点
-    返回：
-    - bending: 平均绝对曲率（整体弯曲程度）
-    - x_eval, y_fit: 拟合曲线
-    - coef: 多项式系数
-    - curvature: 拟合曲线上的曲率分布
-    - max_curv_x: 曲率最大点在展向上的 x 坐标
-    - max_curv_y: 曲率最大点对应的 y 坐标
-    - max_curv_value: 最大曲率值
-    """
     xs, ys = _prepare_edge_for_fit(edge_pts, n_samples=n_samples)
     if xs is None:
         return {
@@ -650,7 +569,7 @@ def fit_edge_curve(edge_pts, poly_deg=3, n_samples=400, fit_x_range=(0.1, 0.9)):
             "max_curv_value": np.nan,
         }
 
-    # 仅保留中段拟合点，避免 root / tip 对整体 bending 的过分影响
+
     x_min_fit, x_max_fit = fit_x_range
     mask = (xs >= x_min_fit) & (xs <= x_max_fit)
 
@@ -751,17 +670,6 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
                                   te_offset=None,
                                   distal_dx=None,
                                   distal_dy=None):
-    """
-    可视化：
-    - 平滑总轮廓
-    - 前缘散点 / 后缘散点
-    - 前缘拟合曲线 / 后缘拟合曲线（虚线，并做偏移，避免遮挡原轮廓）
-    - 标记 TE 最大曲率点
-    - 标出翼尖曲率计算范围、tip 点、tip 局部拟合曲线
-    - 标出 distal turning point、参与计算的 distal segment used（绿色）
-    - 标出 distal 拟合曲线（右上偏移）
-    - 不再绘制 baseline
-    """
     try:
         contour_smoothed = np.asarray(contour_smoothed, dtype=float).reshape(-1, 2)
         le_pts = np.asarray(le_pts, dtype=float).reshape(-1, 2)
@@ -783,7 +691,6 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
 
         fig, ax = plt.subplots(figsize=(11, 5.5))
 
-        # 自动确定偏移尺度
         x_scale = np.max(contour_smoothed[:, 0]) - np.min(contour_smoothed[:, 0])
         y_scale = np.max(contour_smoothed[:, 1]) - np.min(contour_smoothed[:, 1])
 
@@ -797,21 +704,15 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
         if te_offset is None:
             te_offset = 0.10 * y_scale
 
-        # distal 拟合曲线往右上挪
         if distal_dx is None:
             distal_dx = 0.03 * x_scale
         if distal_dy is None:
             distal_dy = 0.12 * y_scale
 
-        # -----------------------------
-        # 总轮廓
-        # -----------------------------
         ax.plot(contour_smoothed[:, 0], contour_smoothed[:, 1],
                 color='0.65', linewidth=1.6, alpha=0.95, label='Smoothed contour')
 
-        # -----------------------------
-        # LE / TE 原始点
-        # -----------------------------
+
         if len(le_pts) > 0:
             ax.scatter(le_pts[:, 0], le_pts[:, 1],
                        s=10, c='tab:blue', alpha=0.75, label='LE points')
@@ -820,9 +721,7 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
             ax.scatter(te_pts[:, 0], te_pts[:, 1],
                        s=10, c='tab:orange', alpha=0.45, label='TE points')
 
-        # -----------------------------
-        # LE 拟合：虚线 + 下移
-        # -----------------------------
+
         if le_fit is not None and le_fit["x_eval"] is not None:
             ax.plot(le_fit["x_eval"],
                     le_fit["y_fit"] + le_offset,
@@ -832,9 +731,7 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
                     alpha=0.95,
                     label=f'LE fit (offset, bend={le_fit["bending"]:.4f})')
 
-        # -----------------------------
-        # TE 拟合：虚线 + 上移
-        # -----------------------------
+
         if te_fit is not None and te_fit["x_eval"] is not None:
             ax.plot(te_fit["x_eval"],
                     te_fit["y_fit"] + te_offset,
@@ -850,9 +747,6 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
                         'o', color='darkorange', markersize=6,
                         label=f'TE max-curv x={te_fit["max_curv_x"]:.3f}')
 
-        # -----------------------------
-        # distal 区域：只保留绿色 used 区域 + turning point
-        # -----------------------------
         if distal_seg_used is not None and len(distal_seg_used) > 0:
             ax.plot(distal_seg_used[:, 0], distal_seg_used[:, 1],
                     color='limegreen', linewidth=3.0, alpha=0.95,
@@ -863,9 +757,6 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
                     marker='D', color='purple', markersize=8,
                     label='Distal turning point')
 
-        # -----------------------------
-        # distal 拟合曲线：右上偏移
-        # -----------------------------
         if distal_fit is not None and distal_fit["x_eval"] is not None:
             ax.plot(distal_fit["x_eval"] + distal_dx,
                     distal_fit["y_fit"] + distal_dy,
@@ -876,9 +767,6 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
                     label=(f'Distal fit (offset, bend={distal_fit["bending"]:.4f}, '
                            f'signed_k={distal_fit["signed_curvature"]:.4f})'))
 
-        # -----------------------------
-        # Tip 相关可视化
-        # -----------------------------
         if tip_point is not None:
             tip_point = np.asarray(tip_point, dtype=float).reshape(2,)
 
@@ -903,18 +791,14 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
                         color='crimson', linewidth=2.0, linestyle='-',
                         alpha=0.90, label='Tip local fit')
 
-        # -----------------------------
-        # 图形样式
-        # -----------------------------
+
         ax.set_aspect('equal', adjustable='box')
         ax.grid(True, alpha=0.3)
         ax.set_title(f'{name} LE/TE fitted curves', fontsize=14, fontweight='bold')
         ax.set_xlabel('Spanwise (x)')
         ax.set_ylabel('Chordwise (y)')
 
-        # -----------------------------
-        # 数值信息放到图外 legend
-        # -----------------------------
+  
         extra_handles = []
         extra_labels = []
 
@@ -959,21 +843,13 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
 
 
 def edge_bending_degree(edge_pts, poly_deg=3, n_samples=200):
-    """
-    兼容你现有主程序的接口
-    """
+
     fit_res = fit_edge_curve(edge_pts, poly_deg=poly_deg, n_samples=n_samples)
     return fit_res["bending"]
 
 def extract_distal_segment(te_pts, tip_point=(1.0, 0.0), ref_x=np.nan,
                            trim_frac=(0.10, 0.95)):
-    """
-    从 TE 中提取 distal 子段：
-    1) 找 x 最接近 ref_x 的点作为 distal 起点
-    2) 找 tip 在 TE 上最近点
-    3) 提取 turn -> tip 的真实 TE 子段
-    4) 再按弧长裁掉两端，只保留 10%-95%
-    """
+
     pts = np.asarray(te_pts, dtype=float).reshape(-1, 2)
     tip = np.asarray(tip_point, dtype=float).reshape(2,)
     empty = np.empty((0, 2), dtype=float)
@@ -1003,7 +879,7 @@ def extract_distal_segment(te_pts, tip_point=(1.0, 0.0), ref_x=np.nan,
             "n_used": 0,
         }
 
-    # 提取 turn -> tip 的真实 TE 子段
+
     if idx_turn < idx_tip:
         seg = pts[idx_turn:idx_tip + 1]
     else:
@@ -1108,9 +984,6 @@ def fit_distal_curve(distal_pts, poly_deg=3, n_samples=300):
         "curvature": k_signed,
     }
 
-# =========================================================
-# 主程序
-# =========================================================
 
 def main():
     print("=" * 60 + "\n")
@@ -1160,10 +1033,7 @@ def main():
     }
 
     def encode_family_name(name):
-        """
-        根据样本名中的关键词返回家族数字编码
-        若未匹配到，返回 np.nan
-        """
+
         name_str = str(name)
 
         for family, code in FAMILY_CODE_MAP.items():
@@ -1192,7 +1062,6 @@ def main():
             print(f"ERROR: wing_tip is None for {image_path.stem}")
             continue
 
-        # ---------- (1) 原图提取效果检查 ----------
         original = image_tool.import_image(str(image_path))
         output_sections(
             original=original,
@@ -1203,7 +1072,6 @@ def main():
             name=image_path.stem
         )
 
-        # ---------- (2) 轮廓平移+旋转+归一化 ----------
         contour_pts = np.asarray(edge_points, dtype=np.float32).reshape(-1, 2)
         root = np.asarray(wing_root, dtype=np.float32).reshape(2,)
         tip = np.asarray(wing_tip, dtype=np.float32).reshape(2,)
@@ -1211,7 +1079,6 @@ def main():
         contour_t = image_tool.transform_points_by_span(contour_pts, root, tip)
         contour_1x2 = np.asarray(contour_t, dtype=np.float32).reshape(-1, 1, 2)
 
-        # ---------- (3) 面积、矩：仍然使用未平滑轮廓 ----------
         geo = compute_geometry_from_contour(contour_1x2)
 
         wing_area = geo["area"]
@@ -1229,7 +1096,6 @@ def main():
         mo2_y = geo["m20"]   # ∬ x^2 dA
         mo2_x = geo["m02"]   # ∬ y^2 dA
 
-        # ---------- (4) 其余特征全部使用平滑轮廓 ----------
         contour_s, P_smooth = smooth_contour(contour_t)
         perimeter = P_smooth
 
@@ -1256,7 +1122,6 @@ def main():
             )
         tip_k = tip_info["curvature"]
 
-        # 这里改成“整体弯曲程度”，不再是局部最大曲率
         le_fit = fit_edge_curve(le_pts, poly_deg=3, n_samples=400, fit_x_range=(0.1, 0.9))
         te_fit = fit_edge_curve(te_pts, poly_deg=3, n_samples=400, fit_x_range=(0.1, 0.9))
 
@@ -1281,7 +1146,6 @@ def main():
 
         te_distal_bending = distal_fit["bending"]
         te_distal_signed_curvature = distal_fit["signed_curvature"]
-        # ---------- (5) 可视化 ----------
         root_t = (0.0, 0.0)
         tip_t = (1.0, 0.0)
 
@@ -1325,7 +1189,6 @@ def main():
             tip_area_radius=0.1
         )
 
-        # ---------- (6) 写入结果 ----------
         sample_name = str(image_path.stem)
         family_code = encode_family_name(sample_name)
 
