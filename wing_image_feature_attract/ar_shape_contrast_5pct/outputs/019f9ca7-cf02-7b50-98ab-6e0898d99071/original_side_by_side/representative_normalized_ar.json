@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "source_results_json": "C:\\Users\\16240\\Desktop\\air\\dimensionless\\New\\wing_image_feature_attract\\ar_shape_contrast_5pct\\outputs\\019f9ca7-cf02-7b50-98ab-6e0898d99071\\ar_shape_contrast_results.json",
+    "ar_formula": "AR = 1 / normalized_planform_area",
+    "pair_count": 12,
+    "sample_count": 24
+  },
+  "rows": [
+    {
+      "figure": "Pair_001.png",
+      "panel": "(a)",
+      "name": "Charaxinae-5",
+      "normalized_area": 0.3788427845411293
+    },
+    {
+      "figure": "Pair_001.png",
+      "panel": "(b)",
+      "name": "Hesperiidae-24",
+      "normalized_area": 0.37997109543719565
+    },
+    {
+      "figure": "Pair_002.png",
+      "panel": "(a)",
+      "name": "Hesperiidae_Taractrocera_papyria",
+      "normalized_area": 0.4089265102350444
+    },
+    {
+      "figure": "Pair_002.png",
+      "panel": "(b)",
+      "name": "Pieridae_Gonepteryx_rhamni",
+      "normalized_area": 0.40732448885794076
+    },
+    {
+      "figure": "Pair_003.png",
+      "panel": "(a)",
+      "name": "Hesperiidae_Croitana_arenaria",
+      "normalized_area": 0.39030859287241665
+    },
+    {
+      "figure": "Pair_003.png",
+      "panel": "(b)",
+      "name": "Pieridae-Coliadinae-3",
+      "normalized_area": 0.39339575127093246
+    },
+    {
+      "figure": "Pair_004.png",
+      "panel": "(a)",
+      "name": "Pieridae-Coliadinae-8",
+      "normalized_area": 0.4281849133965163
+    },
+    {
+      "figure": "Pair_004.png",
+      "panel": "(b)",
+      "name": "Riodinidae-12",
+      "normalized_area": 0.43066693730592226
+    },
+    {
+      "figure": "Pair_005.png",
+      "panel": "(a)",
+      "name": "Danainae-16",
+      "normalized_area": 0.31872375654239243
+    },
+    {
+      "figure": "Pair_005.png",
+      "panel": "(b)",
+      "name": "Hesperiidae-22",
+      "normalized_area": 0.32051699702047864
+    },
+    {
+      "figure": "Pair_006.png",
+      "panel": "(a)",
+      "name": "Hesperiidae-12",
+      "normalized_area": 0.37784242981981025
+    },
+    {
+      "figure": "Pair_006.png",
+      "panel": "(b)",
+      "name": "Papilionidae_Papilio_polytes",
+      "normalized_area": 0.3762236682467351
+    },
+    {
+      "figure": "Pair_007.png",
+      "panel": "(a)",
+      "name": "Papilionidae-20",
+      "normalized_area": 0.33367678931367006
+    },
+    {
+      "figure": "Pair_007.png",
+      "panel": "(b)",
+      "name": "Pieridae-13",
+      "normalized_area": 0.3319864546086178
+    },
+    {
+      "figure": "Pair_008.png",
+      "panel": "(a)",
+      "name": "Charaxinae-14",
+      "normalized_area": 0.45680316264621307
+    },
+    {
+      "figure": "Pair_008.png",
+      "panel": "(b)",
+      "name": "Riodinidae-5",
+      "normalized_area": 0.45287693386286293
+    },
+    {
+      "figure": "Pair_009.png",
+      "panel": "(a)",
+      "name": "Charaxinae-6",
+      "normalized_area": 0.3971057891031641
+    },
+    {
+      "figure": "Pair_009.png",
+      "panel": "(b)",
+      "name": "Nymphalinae-12",
+      "normalized_area": 0.3998544833716397
+    },
+    {
+      "figure": "Pair_010.png",
+      "panel": "(a)",
+      "name": "Hesperiidae-15",
+      "normalized_area": 0.33358902412522046
+    },
+    {
+      "figure": "Pair_010.png",
+      "panel": "(b)",
+      "name": "Satyrinae-23",
+      "normalized_area": 0.33129627727581024
+    },
+    {
+      "figure": "Pair_011.png",
+      "panel": "(a)",
+      "name": "Heliconiinae-4",
+      "normalized_area": 0.3395724589492845
+    },
+    {
+      "figure": "Pair_011.png",
+      "panel": "(b)",
+      "name": "Papilionidae_Graphium_agamemnon",
+      "normalized_area": 0.3428051208150631
+    },
+    {
+      "figure": "Pair_012.png",
+      "panel": "(a)",
+      "name": "Limenitidinae-3",
+      "normalized_area": 0.37365976128230854
+    },
+    {
+      "figure": "Pair_012.png",
+      "panel": "(b)",
+      "name": "Pieridae-Coliadinae-7",
+      "normalized_area": 0.3728302846101812
+    }
+  ]
+}

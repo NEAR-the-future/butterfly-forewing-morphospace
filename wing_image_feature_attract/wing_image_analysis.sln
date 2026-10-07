@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36811.4 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "wing_image_analysis", "wing_image_analysis.pyproj", "{4DB5C4E7-8E93-4B07-953A-E888BD15ABC0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4DB5C4E7-8E93-4B07-953A-E888BD15ABC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DB5C4E7-8E93-4B07-953A-E888BD15ABC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4D2F153A-78CB-4007-9959-CCB7192E6B18}
+	EndGlobalSection
+EndGlobal

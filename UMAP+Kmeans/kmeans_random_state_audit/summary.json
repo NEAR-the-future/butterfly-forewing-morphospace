@@ -1,0 +1,33 @@
+{
+  "input": "C:\\Users\\16240\\Desktop\\air\\dimensionless\\New\\UMAP+Kmeans\\fine_search_results\\20260926_234406_930698\\best_reference_labels.csv",
+  "reference_sample_count": 383,
+  "cluster_count": 7,
+  "tested_seed_start": 0,
+  "tested_seed_count": 100,
+  "tested_seed_end_inclusive": 99,
+  "kmeans_protocol": {
+    "init": "k-means++",
+    "n_init": 20,
+    "max_iter": 300
+  },
+  "all_partitions_match_saved_up_to_label_permutation": false,
+  "matching_partition_count": 10,
+  "maximum_changed_reference_count_after_label_matching": 1,
+  "changed_reference_names_across_tested_seeds": [
+    "Hesperiidae-16"
+  ],
+  "adjusted_rand_index_min": 0.9945481309677171,
+  "adjusted_rand_index_max": 1.0,
+  "saved_partition_silhouette": 0.5131018482949178,
+  "tested_silhouette_min": 0.5131018482949178,
+  "tested_silhouette_max": 0.5138798697384442,
+  "saved_partition_davies_bouldin_index": 0.6716995474843538,
+  "tested_davies_bouldin_index_min": 0.6707540674700123,
+  "tested_davies_bouldin_index_max": 0.6716995474843539,
+  "software": {
+    "python": "3.12.3",
+    "numpy": "2.4.4",
+    "pandas": "3.0.2",
+    "scikit_learn": "1.7.2"
+  }
+}
