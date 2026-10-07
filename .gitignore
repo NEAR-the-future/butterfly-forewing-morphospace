@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated results
+fine_search_results/
+results/
+outputs/
+
+# Large intermediate files
+*.sqlite3
+*.csv
