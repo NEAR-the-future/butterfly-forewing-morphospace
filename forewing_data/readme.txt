@@ -3,22 +3,22 @@ The sources of our forewing data are listed in refs.xlsx.
 Count: 383
 Biblidinae 14 √
 Charaxinae 15 √
-Danainae 21 √
+Danainae 20 √
 Heliconiinae 23 √
 Hesperiidae 55 √
-Limenitidinae 12 √
+Limenitidinae 13 √
 Lycaenidae 47 √
-Nymphalinae 30 √
+Nymphalinae 31 √
 Riodinidae 25 √
-Papilionidae 49 √
-Parnassiinae 6 √
-Pieridae 35 √
-Pieridae-Coliadinae 24 √
-Satyrinae 27 √
+Papilionidae 48 √
+Parnassiinae 7 √
+Pieridae 32 √
+Pieridae-Coliadinae 27 √
+Satyrinae 26 √
 
 Biblidinae all from ref-6 (Bib-14-discarded)
 Charaxinae 2-15 from ref-6
-Danainae 6-23 from ref-6（Dan-10-discarded  Dan-19-discarded）
+Danainae 6-23 from ref-6（Dan-5/10/19-discarded）
 Heliconiinae 4-23 from ref-6
 Hesperiidae 1-36 from ref-6
 Limenitidinae 2-12 from ref-6

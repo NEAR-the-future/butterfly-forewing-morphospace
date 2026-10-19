@@ -1,20 +1,3 @@
-"""Find butterfly wings with similar aspect ratio but different outlines.
-
-The measurement path intentionally mirrors ``tip_setting_feasibility_check.py``
-and the main wing-analysis workflow:
-
-1. detect the red wing-root marker;
-2. extract the ordered wing outline with ``image_tool.extract_edge_profile``;
-3. use the blue manual tip when available, otherwise use
-   ``shape_tool.tip_locate`` with the current parameters;
-4. rotate the root--tip span onto the x axis and normalize the span to 1;
-5. calculate the unsmoothed normalized planform area and AR = 1 / area.
-
-All AR pairs within the requested symmetric relative-difference threshold are
-retained.  A small, non-repeating subset is selected for figures by looking for
-very close AR values and low outline intersection-over-union (IoU).
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -44,8 +27,8 @@ PROJECT_DIR = SCRIPT_DIR.parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-import image_tool  # noqa: E402
-import shape_tool  # noqa: E402
+import image_tool
+import shape_tool
 
 
 SUPPORTED_EXTENSIONS = {".png"}
@@ -101,84 +84,59 @@ class ARPair:
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Calculate butterfly-wing AR with the current root/tip workflow, "
-            "retain all pairs within a threshold, and draw dissimilar outlines."
-        )
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--input-dir",
         type=Path,
         default=PROJECT_DIR / "wing_import",
-        help="Input directory containing processed wing PNG images.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=None,
-        help=(
-            "Output directory. If omitted, a timestamped folder is created under "
-            "./outputs."
-        ),
     )
     parser.add_argument(
         "--threshold-percent",
         type=float,
         default=DEFAULT_THRESHOLD_PERCENT,
-        help="Maximum symmetric relative AR difference in percent (default: 5).",
     )
     parser.add_argument(
         "--priority-threshold-percent",
         type=float,
         default=DEFAULT_PRIORITY_THRESHOLD_PERCENT,
-        help=(
-            "Prefer representative figures from this stricter AR threshold "
-            "(default: 1)."
-        ),
     )
     parser.add_argument(
         "--representative-count",
         type=int,
         default=DEFAULT_REPRESENTATIVE_COUNT,
-        help="Number of one-to-one representative outline figures (default: 12).",
     )
     parser.add_argument(
         "--mask-resolution",
         type=int,
         default=DEFAULT_MASK_RESOLUTION,
-        help="Raster resolution used only for outline IoU ranking (default: 512).",
     )
     parser.add_argument(
         "--dpi",
         type=int,
         default=DEFAULT_DPI,
-        help="DPI for individual pair figures (default: 600).",
     )
     parser.add_argument(
         "--recursive",
         action="store_true",
-        help="Search the input directory recursively.",
     )
     parser.add_argument(
         "--node-exe",
         type=Path,
         default=None,
-        help=(
-            "Optional Node.js executable. If supplied, the Excel workbook is "
-            "built automatically with artifact-tool."
-        ),
     )
     parser.add_argument(
         "--skip-workbook",
         action="store_true",
-        help="Do not invoke the companion Excel workbook builder.",
     )
     parser.add_argument(
         "--preview-dir",
         type=Path,
         default=None,
-        help="Optional directory for workbook-render verification previews.",
     )
     args = parser.parse_args(argv)
 
@@ -210,7 +168,6 @@ def as_point(point: object) -> tuple[float, float] | None:
 
 
 def infer_family(name: str) -> str:
-    """Return the family/subfamily label encoded at the start of each name."""
     known_labels = (
         "Pieridae-Coliadinae",
         "Biblidinae",
@@ -237,7 +194,6 @@ def algorithm_detected_tip(
     edge_points: Sequence[Sequence[float]],
     root: tuple[float, float],
 ) -> tuple[float, float] | None:
-    """Use exactly the same tip parameters as the current analysis workflow."""
     with contextlib.redirect_stdout(io.StringIO()):
         tip = shape_tool.tip_locate(
             edge_points,
@@ -516,7 +472,6 @@ def select_representative_pairs(
                 break
 
     if len(selected) < count:
-        # Final fallback allows repeated samples, but still avoids duplicate pairs.
         for pair in ranked(pairs, cross_family_only=False):
             if len(selected) >= count:
                 break
@@ -714,10 +669,6 @@ def build_workbook(
     try:
         subprocess.run(command, cwd=SCRIPT_DIR, check=True)
     except subprocess.CalledProcessError:
-        # On some Windows artifact-tool builds, Node can return a non-zero
-        # process status after the workbook and all render previews have already
-        # been saved.  Treat that late exit as recoverable only when the final
-        # workbook is present and non-empty; all earlier failures still raise.
         if not workbook_path.is_file() or workbook_path.stat().st_size == 0:
             raise
         print(

@@ -1,4 +1,3 @@
-
 import argparse
 import hashlib
 import itertools
@@ -32,7 +31,11 @@ from reference_model_io import load_reference
 
 
 HERE = Path(__file__).resolve().parent
-OLD = HERE / "reference_umap_feature_search"
+EXPLORE_ROOT = HERE / "explore_runs"
+EXPLORE_STAGE = "reference_exploration_and_model_fit"
+ARCHIVE_STEM = "reference_umap_feature_search_all_results"
+MODEL_ARTIFACT_NAME = "best_reference_umap_model.joblib"
+MANIFEST_NAME = "best_reference_umap_manifest.json"
 DEFAULT_NEIGHBORS = [3, 4, 5, 6, 7, 8, 10, 12, 14, 20]
 DEFAULT_MIN_DIST = [0, 0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.10, 0.15, 0.20]
 SCHEMA_VERSION = 2
@@ -61,12 +64,42 @@ def parse_values(text, converter):
     return sorted(values)
 
 
+def explore_run_archive(run_dir):
+    for name in (ARCHIVE_STEM + ".csv.gz", ARCHIVE_STEM + ".csv"):
+        candidate = run_dir / name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def latest_explore_run(root=None):
+    root = Path(root) if root is not None else EXPLORE_ROOT
+    candidates = []
+    if root.is_dir():
+        for run_dir in root.iterdir():
+            if not run_dir.is_dir():
+                continue
+            artifact = run_dir / MODEL_ARTIFACT_NAME
+            archive = explore_run_archive(run_dir)
+            manifest_path = run_dir / MANIFEST_NAME
+            if not (artifact.is_file() and archive is not None and manifest_path.is_file()):
+                continue
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if manifest.get("workflow_stage") == EXPLORE_STAGE:
+                candidates.append((run_dir.name, artifact, archive))
+    return max(candidates) if candidates else None
+
+
 def parse_args():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser()
+    latest = latest_explore_run()
     parser.add_argument("--archive", type=Path,
-                        default=OLD / "reference_umap_feature_search_all_results.csv")
+                        default=latest[2] if latest else None)
     parser.add_argument("--model-artifact", type=Path,
-                        default=OLD / "best_reference_umap_model.joblib")
+                        default=latest[1] if latest else None)
     parser.add_argument("--reference", type=Path, default=HERE / "summary_11.xlsx")
     parser.add_argument("--guard-input", type=Path, default=HERE / "summary_input-all.xlsx")
     parser.add_argument("--guard-name", default="AirPulse")
@@ -76,14 +109,16 @@ def parse_args():
     parser.add_argument("--min-dist", type=lambda s: parse_values(s, float), default=DEFAULT_MIN_DIST)
     parser.add_argument("--k-values", type=lambda s: parse_values(s, int), default=list(range(3, 10)))
     parser.add_argument("--output-dir", type=Path, default=None)
-    parser.add_argument("--dry-run", action="store_true", help="Write plan only, with no model fitting.")
-    parser.add_argument("--resume", action="store_true", help="Resume --output-dir with exactly the same plan.")
-    parser.add_argument("--max-embeddings", type=int, default=None,
-                        help="Stop after this many NEW embeddings, keeping a resumable partial run.")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--max-embeddings", type=int, default=None)
     parser.add_argument("--progress-every", type=int, default=10)
-    parser.add_argument("--compute-stability", action="store_true",
-                        help="Also compute all pairwise seed ARIs per configuration after the search.")
+    parser.add_argument("--compute-stability", action="store_true")
     args = parser.parse_args()
+    if args.archive is None or args.model_artifact is None:
+        parser.error(f"No completed explore run under {EXPLORE_ROOT}. "
+                     "Run explore_reference_umap_kmeans.py first, or pass "
+                     "--archive and --model-artifact explicitly.")
     if args.top_feature_sets < 1 or args.progress_every < 1:
         parser.error("Feature-set count and progress interval must be positive.")
     if args.max_embeddings is not None and args.max_embeddings < 1:
@@ -124,7 +159,7 @@ def shortlist_archive(path, count):
 
 
 def preprocess(frame, features):
-    values = frame.loc[:, features].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float)
+    values = frame.loc[:, features].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float, copy=True)
     values[~np.isfinite(values)] = np.nan
     if np.any(np.all(np.isnan(values), axis=0)):
         raise ValueError("A selected feature has no finite reference observations.")
@@ -135,7 +170,7 @@ def preprocess(frame, features):
 
 
 def transform(frame, features, preprocessor):
-    values = frame.loc[:, features].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float)
+    values = frame.loc[:, features].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float, copy=True)
     values[~np.isfinite(values)] = np.nan
     return preprocessor["scaler"].transform(preprocessor["imputer"].transform(values))
 
@@ -290,7 +325,7 @@ def export_results(connection, output, plan, complete):
     summary["all_seeds_completed"] = summary["seeds_completed"].eq(len(plan["seeds"]))
     summary.to_csv(output / "seed_summary.csv", index=False, encoding="utf-8-sig")
     if complete and plan["compute_stability"]:
-        
+
         labels_by_group = {}
         for payload, packed in connection.execute("SELECT rows_json, labels FROM runs"):
             rows = json.loads(payload)

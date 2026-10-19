@@ -1,4 +1,3 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -53,8 +52,8 @@ def _window_turning_angle(window_pts, debug=False):
 
     mid = n // 2
 
-    v1 = pts[mid] - pts[0]     
-    v2 = pts[-1] - pts[mid]    
+    v1 = pts[mid] - pts[0]
+    v2 = pts[-1] - pts[mid]
 
     n1 = np.linalg.norm(v1)
     n2 = np.linalg.norm(v2)
@@ -73,11 +72,6 @@ def _window_turning_angle(window_pts, debug=False):
 
     if debug:
         print("\n[window turning angle debug]")
-        # print(f"points:\n{pts}")
-        # print(f"mid index: {mid}")
-        # print(f"v1 (start->mid): {v1}, |v1|={n1}")
-        # print(f"v2 (mid->end):   {v2}, |v2|={n2}")
-        # print(f"cos(theta): {cos_theta}")
         print(f"angle (deg): {theta_deg}")
 
     return float(theta_deg)
@@ -149,7 +143,7 @@ def tip_locate(edge_points, red_dot, bending_threshold=45.0, window_size=9, poly
 
     le_tip_to_root = le_points[::-1]
 
-   
+
     le_candidate = _detect_tip_compensation_point(
         le_tip_to_root,
         threshold=bending_threshold,
@@ -166,20 +160,20 @@ def tip_locate(edge_points, red_dot, bending_threshold=45.0, window_size=9, poly
 
 def get_perimeter(le_points, te_points):
 
- 
+
     LE_length = 0.0
     for i in range(len(le_points) - 1):
         x1, y1 = le_points[i]
         x2, y2 = le_points[i + 1]
         LE_length += np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
-  
+
     TE_length = 0.0
     for i in range(len(te_points) - 1):
         x1, y1 = te_points[i]
         x2, y2 = te_points[i + 1]
-        TE_length += np.sqrt((x2 - x1)**2 + (y2 - y1)**2)  
-    
+        TE_length += np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
     return LE_length, TE_length
 
 
@@ -187,39 +181,36 @@ def get_moments(le_points, te_points, wing_root, wing_tip, moment=1, axis="spanw
 
     n_sections = len(le_points) - 1
     total_moment = 0.0
-    
+
     span_vector = np.array(wing_tip) - np.array(wing_root)
     span_length = np.linalg.norm(span_vector)
-    
+
     if span_length > 0:
         span_dir = span_vector / span_length
         chord_dir = np.array([-span_dir[1], span_dir[0]])
     else:
         span_dir = np.array([1, 0])
         chord_dir = np.array([0, 1])
-    
-    # Determine which axis to measure distance along
+
     if axis.lower() == "chordwise":
-        # Moment about chordwise axis = distance along spanwise direction
         axis_dir = span_dir
     elif axis.lower() == "spanwise":
-        # Moment about spanwise axis = distance along chordwise direction
         axis_dir = chord_dir
     else:
         raise ValueError("axis must be 'spanwise' or 'chordwise'")
-    
+
     root_vec = np.array(wing_root)
-    
+
 
     for i in range(n_sections):
         vertices_list = []
 
         vertices_list.append(le_points[i])
         vertices_list.append(le_points[i + 1])
-        
+
         vertices_list.append(te_points[i + 1])
         vertices_list.append(te_points[i])
-        
+
         unique_vertices = []
         for v in vertices_list:
             if not any(np.array_equal(v, uv) for uv in unique_vertices):
@@ -227,12 +218,12 @@ def get_moments(le_points, te_points, wing_root, wing_tip, moment=1, axis="spanw
 
         if len(unique_vertices) < 3:
             continue
-        
+
         vertices = np.array(unique_vertices)
 
         x, y = vertices[:, 0], vertices[:, 1]
         area = 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
-        
+
         if moment == 0:
             total_moment += area
             continue
@@ -252,7 +243,7 @@ def get_moments(le_points, te_points, wing_root, wing_tip, moment=1, axis="spanw
         else:
             raise ValueError("moment must be 0, 1, 2, or 3")
 
-    
+
     return total_moment
 
 
@@ -260,63 +251,57 @@ def get_sectional_area(le_points, te_points):
 
     n_sections = len(le_points) - 1
     sectional_areas = np.zeros(n_sections)
-    
+
     for i in range(n_sections):
-        # Extract points for this section
-        p1 = le_points[i]      # LE at section start
-        p2 = le_points[i + 1]  # LE at section end
-        p3 = te_points[i + 1]  # TE at section end
-        p4 = te_points[i]      # TE at section start
-        
-        # Check for triangle vs quadrilateral
+        p1 = le_points[i]
+        p2 = le_points[i + 1]
+        p3 = te_points[i + 1]
+        p4 = te_points[i]
+
         is_root_section = (i == 0 and np.array_equal(p1, p4))
         is_tip_section = (i == n_sections - 1 and np.array_equal(p2, p3))
-        
+
         if is_root_section:
             vertices = np.array([p1, p2, p3])
         elif is_tip_section:
             vertices = np.array([p1, p2, p4])
         else:
             vertices = np.array([p1, p2, p3, p4])
-        
+
         x = vertices[:, 0]
         y = vertices[:, 1]
         area = 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
         sectional_areas[i] = area
-    
+
     return sectional_areas
 
 
 def get_section_centroid(vertices):
     if len(vertices) < 3:
         return np.mean(vertices, axis=0) if len(vertices) > 0 else (0, 0)
-    
-    # Convert to numpy arrays
+
     x = vertices[:, 0]
     y = vertices[:, 1]
     n = len(vertices)
-    
+
     signed_area = 0.0
     cx = 0.0
     cy = 0.0
-    
+
     for i in range(n):
         j = (i + 1) % n
         cross_product = x[i] * y[j] - x[j] * y[i]
         signed_area += cross_product
-        
-        # Accumulate centroid components
+
         cx += (x[i] + x[j]) * cross_product
         cy += (y[i] + y[j]) * cross_product
-    
+
     signed_area *= 0.5
-    
-    # Avoid division by zero
+
     if abs(signed_area) < 1e-10:
         return np.mean(vertices, axis=0)
-    
-    # Final centroid calculation
+
     cx = cx / (6 * signed_area)
     cy = cy / (6 * signed_area)
-    
+
     return cx, cy

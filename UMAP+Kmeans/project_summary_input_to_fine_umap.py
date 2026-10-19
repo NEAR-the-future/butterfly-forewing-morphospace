@@ -1,4 +1,3 @@
-
 import argparse
 import colorsys
 import hashlib
@@ -79,7 +78,7 @@ TYPE_NUMBER_COLORS = [
 TYPE_NUMBER_NAMES = {
     "1": "Hesperiidae",
     "2": "Lycaenidae",
-    "3": "Papilionidae",
+    "3": "Papilioninae",
     "4": "Pieridae",
     "5": "Biblidinae",
     "6": "Charaxinae",
@@ -113,7 +112,6 @@ plt.rcParams.update(
 
 
 def input_diamond_color(input_number):
-    """Return a stable, non-cycling color for one-based input numbering."""
     color_index = max(int(input_number) - 1, 0)
     hue = (color_index * INPUT_COLOR_GOLDEN_RATIO) % 1.0
     saturation = INPUT_COLOR_SATURATIONS[color_index % len(INPUT_COLOR_SATURATIONS)]
@@ -136,7 +134,6 @@ def input_diamond_legend_handle(input_number, markersize=9.5):
 
 
 def completed_fine_run(run_dir):
-    """Return completion time only for a completed fine run with an exported winner."""
     run_dir = Path(run_dir)
     try:
         status = json.loads((run_dir / "run_status.json").read_text(encoding="utf-8"))
@@ -158,7 +155,6 @@ def completed_fine_run(run_dir):
 
 
 def resolve_fine_model(fine_search_dir=None, root=None):
-    """Select the newest completed fine-search winner, never the old coarse model."""
     if fine_search_dir is not None:
         run_dir = Path(fine_search_dir).resolve()
         if completed_fine_run(run_dir) is None:
@@ -179,31 +175,19 @@ def resolve_fine_model(fine_search_dir=None, root=None):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description=(
-            "Project unseen rows with UMAP.transform into a frozen reference space; "
-            "the stored reference coordinates and fitted models are never refitted."
-        )
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT_PATH)
     parser.add_argument("--input-sheet", default=None)
     model_source = parser.add_mutually_exclusive_group()
-    model_source.add_argument("--fine-search-dir", type=Path, default=None,
-                              help="Completed fine-search run directory; default: newest completed run.")
-    model_source.add_argument("--model-artifact", type=Path, default=None,
-                              help="Explicit model file, overriding automatic fine-run discovery.")
-    parser.add_argument("--output-dir", type=Path, default=None,
-                        help="Default: projection subdirectory of the selected model's run directory.")
+    model_source.add_argument("--fine-search-dir", type=Path, default=None)
+    model_source.add_argument("--model-artifact", type=Path, default=None)
+    parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--grid-size", type=int, default=500)
     parser.add_argument("--umap-grid-pad", type=float, default=0.05)
     parser.add_argument(
         "--ood-reference-quantile",
         type=float,
         default=DEFAULT_OOD_REFERENCE_QUANTILE,
-        help=(
-            "Reference leave-one-out nearest-neighbor distance quantile used as "
-            "the OOD rejection threshold (default: %(default)s)."
-        ),
     )
     parser.add_argument("--no-pies", action="store_true")
     args = parser.parse_args()
@@ -421,7 +405,6 @@ def save_projection_legend(
 
 
 def plot_cluster_pies(cluster_labels, type_labels, output_dir):
-    """Draw reference-cluster composition; projected unseen rows are not counted."""
     clusters_array = np.asarray(cluster_labels, dtype=int)
     types_array = np.asarray([normalize_type_number_label(value) for value in type_labels], dtype=str)
     types_array = np.where(types_array == "14", "4", types_array)
@@ -671,7 +654,7 @@ def assess_reference_only_ood(
             f"{all_missing_features}"
         )
 
-    
+
     reference_medians = np.nanmedian(reference_raw, axis=0)
     reference_imputed = np.where(
         np.isnan(reference_raw), reference_medians[None, :], reference_raw
@@ -931,7 +914,6 @@ def plot_true_label_projection(
     pad,
     reference_output_base=None,
 ):
-    """Optionally export the same plot with unseen points and legends hidden."""
     fig, ax = plt.subplots(figsize=(9.5, 7.2))
     _, x_limits, y_limits = add_kmeans_regions(
         ax, model, reference_coordinates, input_coordinates, grid_size, pad

@@ -50,9 +50,6 @@ const parameters = workbook.worksheets.add("Parameters");
 const values = workbook.worksheets.add("AR_values");
 const pairs = workbook.worksheets.add("AR_matches");
 
-// ---------------------------------------------------------------------------
-// Parameters / method sheet
-// ---------------------------------------------------------------------------
 const parameterRows = [
   ["参数", "值", "说明"],
   ["AR相对差阈值", Number(metadata.threshold_fraction), "默认5%；修改后需用Python脚本重新运行，以重新筛选配对。"],
@@ -84,9 +81,6 @@ parameters.freezePanes.freezeRows(1);
 parameters.showGridLines = false;
 addTable(parameters, `A1:C${parameterRows.length}`, "ParametersTable");
 
-// ---------------------------------------------------------------------------
-// One row per image: raw measurements plus a formula-driven AR column.
-// ---------------------------------------------------------------------------
 const valueHeaders = [
   "样本序号",
   "文件名",
@@ -155,10 +149,6 @@ values.freezePanes.freezeRows(1);
 values.freezePanes.freezeColumns(2);
 values.showGridLines = false;
 
-// ---------------------------------------------------------------------------
-// Only pairs retained by the requested threshold.  The AR and comparison
-// columns remain formula-driven and trace directly back to AR_values.
-// ---------------------------------------------------------------------------
 const pairHeaders = [
   "配对序号",
   "翅膀A",
@@ -224,7 +214,6 @@ pairs.freezePanes.freezeRows(1);
 pairs.freezePanes.freezeColumns(3);
 pairs.showGridLines = false;
 
-// Compact verification before export.
 console.log((await workbook.inspect({
   kind: "table",
   range: "Parameters!A1:C10",

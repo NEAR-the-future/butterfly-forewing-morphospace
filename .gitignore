@@ -1,6 +1,6 @@
-# Python cache
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 
 # Jupyter
 .ipynb_checkpoints/
@@ -14,15 +14,15 @@ outputs/
 *.sqlite3
 *.csv
 
-# Python
-__pycache__/
-*.py[cod]
-
 # Node
 node_modules/
 
+# DSH skill bundle
+.dsh/
+
 # IDE
 .vscode/
+.vs/
 .idea/
 
 # OS

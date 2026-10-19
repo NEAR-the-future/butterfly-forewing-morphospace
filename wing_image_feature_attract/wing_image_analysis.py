@@ -1,4 +1,3 @@
-
 import csv
 import image_tool
 import shape_tool
@@ -390,7 +389,6 @@ def tip_curvature(contour, tip=(1.0, 0.0), radius=0.05, poly_deg=3, n_samples=20
         if j == idx_tip:
             break
 
-    # reverse(backward) + tip + forward
     backward_idx = local_idx[1:]
     backward_idx = backward_idx[::-1]
     ordered_idx = backward_idx + [idx_tip] + forward_idx
@@ -798,7 +796,7 @@ def output_edge_fit_visualization(contour_smoothed, le_pts, te_pts,
         ax.set_xlabel('Spanwise (x)')
         ax.set_ylabel('Chordwise (y)')
 
-  
+
         extra_handles = []
         extra_labels = []
 
@@ -1041,7 +1039,7 @@ def main():
                 return code
 
         return np.nan
-    
+
     for image_path in image_files:
         out = process_single_image(image_path, base_dir)
         if out is None:
@@ -1091,10 +1089,10 @@ def main():
             radius=0.1
         )
 
-        mo1_y = geo["m10"]   # ∬ x dA
-        mo1_x = geo["m01"]   # ∬ y dA
-        mo2_y = geo["m20"]   # ∬ x^2 dA
-        mo2_x = geo["m02"]   # ∬ y^2 dA
+        mo1_y = geo["m10"]
+        mo1_x = geo["m01"]
+        mo2_y = geo["m20"]
+        mo2_x = geo["m02"]
 
         contour_s, P_smooth = smooth_contour(contour_t)
         perimeter = P_smooth
@@ -1148,25 +1146,6 @@ def main():
         te_distal_signed_curvature = distal_fit["signed_curvature"]
         root_t = (0.0, 0.0)
         tip_t = (1.0, 0.0)
-
-        # output_planform(
-        #     contour_transformed=contour_t,
-        #     root_transformed=root_t,
-        #     tip_transformed=tip_t,
-        #     centroid=centroid,
-        #     visual_dir=visual_dir,
-        #     name=image_path.stem
-        # )
-
-        # output_planform_smooth_compare(
-        #     contour_transformed=contour_t,
-        #     contour_smoothed=contour_s,
-        #     root_transformed=root_t,
-        #     tip_transformed=tip_t,
-        #     centroid=centroid,
-        #     visual_dir=visual_dir,
-        #     name=image_path.stem
-        # )
 
         output_edge_fit_visualization(
             contour_smoothed=contour_s,

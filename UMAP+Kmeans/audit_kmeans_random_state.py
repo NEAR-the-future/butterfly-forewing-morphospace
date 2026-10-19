@@ -1,10 +1,3 @@
-"""Audit K-means random-state sensitivity on the frozen UMAP embedding.
-
-The audit refits only K-means.  It never refits UMAP or changes the saved
-two-dimensional reference coordinates.  Partition equality is evaluated up
-to a permutation of numeric cluster identifiers.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -29,19 +22,18 @@ HERE = Path(__file__).resolve().parent
 DEFAULT_LABELS = (
     HERE
     / "fine_search_results"
-    / "20260926_234406_930698"
+    / "20261016_234321_740851"
     / "best_reference_labels.csv"
 )
 DEFAULT_OUTPUT = HERE / "kmeans_random_state_audit"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--labels",
         type=Path,
         default=DEFAULT_LABELS,
-        help="Frozen-reference CSV containing UMAP coordinates and cluster labels.",
     )
     parser.add_argument("--seed-start", type=int, default=0)
     parser.add_argument("--seed-count", type=int, default=100)
@@ -49,7 +41,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--require-identical",
         action="store_true",
-        help="Exit non-zero if any tested seed changes the saved partition.",
     )
     args = parser.parse_args()
     if args.seed_start < 0 or args.seed_count < 1:
@@ -58,7 +49,6 @@ def parse_args() -> argparse.Namespace:
 
 
 def same_partition(left: np.ndarray, right: np.ndarray) -> bool:
-    """Return True when two partitions differ at most by label numbering."""
 
     if left.shape != right.shape:
         return False
@@ -71,7 +61,7 @@ def same_partition(left: np.ndarray, right: np.ndarray) -> bool:
 
 
 def align_to_reference(reference: np.ndarray, candidate: np.ndarray) -> np.ndarray:
-    
+
 
     reference_values = np.unique(reference)
     candidate_values = np.unique(candidate)

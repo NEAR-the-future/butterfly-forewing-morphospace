@@ -14,7 +14,7 @@ The repository contains three independent but chainable pipelines:
 
 Datasets involved:
 
-- **Reference set (383 specimens)** across 14 taxa (Hesperiidae, Lycaenidae, Papilionidae, Pieridae, Biblidinae, Charaxinae, Danainae, Heliconiinae, Limenitidinae, Nymphalinae, Satyrinae, Parnassiinae, Riodinidae, Pieridae-Coliadinae)
+- **Reference set (383 specimens)** across 13 taxa (Hesperiidae, Lycaenidae, Papilioninae, Pieridae, Biblidinae, Charaxinae, Danainae, Heliconiinae, Limenitidinae, Nymphalinae, Satyrinae, Parnassiinae, Riodinidae)
 - **Engineering set (11 specimens)**: AirPulse, eMotionButterflies, Fujikawa, RoboButterfly-I, Shinshu, Tanaka, Tu_2025, USTButterfly, USTButterfly-II, USTButterfly-S, Zhao_2026
 
 ## 🎯 Key Features

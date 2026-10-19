@@ -9,7 +9,6 @@ from sklearn.preprocessing import StandardScaler
 
 
 def full_space_rank(distances, index):
-    """One plus the count of strictly closer references; ties share rank."""
     values = np.asarray(distances, dtype=np.float64)
     if values.ndim != 1 or not np.isfinite(values).all() or not 0 <= index < len(values):
         raise ValueError("Rank requires finite 1D distances and a valid reference index.")
@@ -23,7 +22,6 @@ def trustworthiness_passes(value, baseline, tolerance=1e-12):
 
 
 def combine_selection_eligibility(score, guard_results):
-    """A finite single-run score is eligible only after every hard guard passes."""
     return bool(np.isfinite(score) and all(guard_results.get(key) is True for key in (
         "exact_neighbor_guard_passed", "rank_guard_passed", "trustworthiness_guard_passed")))
 
@@ -31,14 +29,13 @@ def combine_selection_eligibility(score, guard_results):
 def build_guard_context(reference, inputs, full_features, name_col, baseline_z,
                         exact_guard_name="AirPulse", ood_quantile=0.985, max_rank=50,
                         trust_neighbors=10, numerical_tolerance=1e-12):
-    """Fit calibration on references only, select OOD-passing input rows once."""
     if not 0 < ood_quantile < 1 or not isinstance(max_rank, int) or max_rank < 1:
         raise ValueError("OOD quantile must be in (0,1); maximum rank must be a positive integer.")
     if not isinstance(trust_neighbors, int) or not 0 < trust_neighbors < len(reference) / 2:
         raise ValueError("Trustworthiness neighbors must be a positive integer below n_reference/2.")
     trustworthiness_passes(1, 1, numerical_tolerance)
-    ref_raw = reference.loc[:, full_features].apply(pd.to_numeric, errors="coerce").to_numpy(float)
-    query_raw = inputs.loc[:, full_features].apply(pd.to_numeric, errors="coerce").to_numpy(float)
+    ref_raw = reference.loc[:, full_features].apply(pd.to_numeric, errors="coerce").to_numpy(float, copy=True)
+    query_raw = inputs.loc[:, full_features].apply(pd.to_numeric, errors="coerce").to_numpy(float, copy=True)
     ref_raw[~np.isfinite(ref_raw)] = np.nan
     query_raw[~np.isfinite(query_raw)] = np.nan
     if np.any(np.all(np.isnan(ref_raw), axis=0)):
@@ -80,7 +77,7 @@ def build_guard_context(reference, inputs, full_features, name_col, baseline_z,
                       "ood_passed": bool(nearest_distances[i] <= threshold)}
         assessments.append(assessment)
         if i in selected:
-            
+
             order = np.argsort(distances[i], kind="stable")
             query_neighbors.append({"input_row_index": i, "input_name": name,
                                     "reference_indices_by_distance": order.tolist(),
@@ -118,7 +115,6 @@ def build_guard_context(reference, inputs, full_features, name_col, baseline_z,
 
 
 def evaluate_embedding_guards(reducer, z, selected_queries, context, force_all=False):
-    """Evaluate once per embedding; return JSON-safe metrics shared by every K."""
     spec = context["spec"]
     z = np.asarray(z, dtype=np.float64)
     selected_queries = np.asarray(selected_queries, dtype=np.float64)

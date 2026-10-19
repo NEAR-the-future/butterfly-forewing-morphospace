@@ -308,7 +308,6 @@ def plot_edge_fit_clean(plot_data, output_dir, name):
 
 
 def plot_wing_schematic(plot_data, output_dir, name):
-    """Draw a clean root-tip schematic from the same normalized wing contour."""
     contour = np.asarray(plot_data["contour_smoothed"], dtype=float).reshape(-1, 2)
     contour = contour[np.all(np.isfinite(contour), axis=1)]
     if len(contour) < 2:

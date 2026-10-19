@@ -15,10 +15,17 @@ import numpy as np
 
 import image_tool
 import shape_tool
+from wing_image_analysis import (
+    extract_distal_segment,
+    fit_edge_curve,
+    smooth_contour,
+    split_le_te_by_root_tip,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
 IMPORT_DIR = BASE_DIR / "wing_import"
+IMPORT_FALLBACK_DIR = BASE_DIR / "wing_import-ALL"
 OUTPUT_DIR = BASE_DIR / "tip_setting_feasibility_check"
 
 TARGET_NAMES = [
@@ -31,6 +38,15 @@ TARGET_NAMES = [
 FONT_FAMILY = "Times New Roman"
 DPI = 600
 FIG_WIDTH_IN = 12.0
+
+
+TIP_RANGE_RADIUS_NORM = 0.05
+
+TIP_RANGE_COLOR = "#1565ff"
+
+TIP_RANGE_DASH_STYLE = (0, (4, 2, 8, 2, 4, 2))
+FINAL_TIP_COLOR = "#1565ff"
+DISTAL_TURN_COLOR = "#ff2ec4"
 
 
 def configure_matplotlib():
@@ -73,6 +89,84 @@ def algorithm_detected_tip(edge_points, root):
     return as_point(tip)
 
 
+def normalise_with_span(edge_points, root, tip):
+
+    contour_px = np.asarray(edge_points, dtype=float).reshape(-1, 2)
+    root = np.asarray(root, dtype=float).reshape(2,)
+    tip = np.asarray(tip, dtype=float).reshape(2,)
+
+    contour_norm = image_tool.transform_points_by_span(contour_px, root, tip)
+
+    span_vec = tip - root
+    span_px = float(np.hypot(span_vec[0], span_vec[1]))
+    angle = float(np.arctan2(span_vec[1], span_vec[0]))
+    cos_a = float(np.cos(angle))
+    sin_a = float(np.sin(angle))
+    y_flip = bool(np.mean(contour_norm[:, 1]) < 0.0)
+
+    def to_pixel(points):
+        pts = np.asarray(points, dtype=float).reshape(-1, 2)
+        rotated_x = pts[:, 0] * span_px
+        rotated_y = pts[:, 1] * span_px
+        if y_flip:
+            rotated_y = -rotated_y
+        x = rotated_x * cos_a - rotated_y * sin_a + root[0]
+        y = rotated_x * sin_a + rotated_y * cos_a + root[1]
+        return np.column_stack([x, y])
+
+    return contour_norm, to_pixel, span_px
+
+
+def analyse_distal_region(edge_points, root, tip):
+
+    root = np.asarray(root, dtype=float).reshape(2,)
+    tip = np.asarray(tip, dtype=float).reshape(2,)
+
+    contour_norm, to_pixel, span_px = normalise_with_span(edge_points, root, tip)
+
+    contour_smooth, _ = smooth_contour(contour_norm)
+    _, te_pts = split_le_te_by_root_tip(
+        contour_smooth,
+        root_point=(0.0, 0.0),
+        tip_point=(1.0, 0.0),
+    )
+
+    te_fit = fit_edge_curve(te_pts, poly_deg=3, n_samples=400, fit_x_range=(0.1, 0.9))
+    te_max_curv_x = float(te_fit["max_curv_x"])
+
+    distal_feat = extract_distal_segment(
+        te_pts,
+        tip_point=(1.0, 0.0),
+        ref_x=te_max_curv_x,
+        trim_frac=(0.10, 0.95),
+    )
+
+    result = {
+        "span_px": span_px,
+        "te_max_curv_x": te_max_curv_x,
+        "turn_point_norm": None,
+        "turn_point_px": None,
+    }
+
+    turn_point = distal_feat.get("turn_point")
+    if turn_point is not None:
+        turn_point = np.asarray(turn_point, dtype=float).reshape(2,)
+        if np.all(np.isfinite(turn_point)):
+            result["turn_point_norm"] = (float(turn_point[0]), float(turn_point[1]))
+            px = to_pixel(turn_point)[0]
+            result["turn_point_px"] = (float(px[0]), float(px[1]))
+
+    return result
+
+
+def resolve_image_path(name):
+    for directory in (IMPORT_DIR, IMPORT_FALLBACK_DIR):
+        candidate = directory / f"{name}.png"
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def extract_tip_check_data(image_path):
     original = image_tool.import_image(str(image_path))
 
@@ -92,6 +186,8 @@ def extract_tip_check_data(image_path):
     if current_tip is None:
         raise RuntimeError(f"No current tip available: {image_path.name}")
 
+    distal = analyse_distal_region(edge_points, root, current_tip)
+
     return {
         "image": original,
         "edge_points": edge_points,
@@ -100,6 +196,7 @@ def extract_tip_check_data(image_path):
         "longest_tip": longest_tip,
         "detected_tip": detected_tip,
         "current_tip": current_tip,
+        "distal": distal,
     }
 
 
@@ -114,7 +211,6 @@ def plot_tip_check(data, name, output_dir):
     root = data["root"]
     current_tip = data["current_tip"]
     longest_tip = data["longest_tip"]
-    detected_tip = data["detected_tip"]
 
     fig, ax = plt.subplots(figsize=figure_size_for_image(image))
     ax.imshow(image)
@@ -149,15 +245,31 @@ def plot_tip_check(data, name, output_dir):
         zorder=6,
     )
 
-    if detected_tip is not None:
+    tip_range_radius_px = TIP_RANGE_RADIUS_NORM * data["distal"]["span_px"]
+    ax.add_patch(
+        plt.Circle(
+            (current_tip[0], current_tip[1]),
+            tip_range_radius_px,
+            fill=False,
+            linestyle=TIP_RANGE_DASH_STYLE,
+            linewidth=2.4,
+            color=TIP_RANGE_COLOR,
+            alpha=0.95,
+            zorder=5,
+        )
+    )
+
+    turn_point_px = data["distal"]["turn_point_px"]
+    if turn_point_px is not None:
         ax.scatter(
-            [detected_tip[0]],
-            [detected_tip[1]],
-            s=160,
-            c="#1565ff",
+            [turn_point_px[0]],
+            [turn_point_px[1]],
+            marker="D",
+            s=170,
+            c=DISTAL_TURN_COLOR,
             edgecolors="none",
             linewidths=0.0,
-            zorder=7,
+            zorder=10,
         )
 
     ax.plot(
@@ -170,14 +282,15 @@ def plot_tip_check(data, name, output_dir):
         linestyle="None",
         zorder=8,
     )
-    ax.plot(
-        current_tip[0],
-        current_tip[1],
-        marker="x",
-        color="black",
-        markersize=15,
-        markeredgewidth=2.2,
-        linestyle="None",
+
+
+    ax.scatter(
+        [current_tip[0]],
+        [current_tip[1]],
+        s=180,
+        c=FINAL_TIP_COLOR,
+        edgecolors="none",
+        linewidths=0.0,
         zorder=9,
     )
 
@@ -220,12 +333,32 @@ def save_legend(output_dir):
         Line2D(
             [0],
             [0],
-            marker="x",
-            color="black",
+            marker="o",
             linestyle="None",
+            markerfacecolor=FINAL_TIP_COLOR,
+            markeredgecolor=FINAL_TIP_COLOR,
+            markeredgewidth=0.0,
+            markersize=13.5,
+            label="Final tip used in current workflow",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color=TIP_RANGE_COLOR,
+            linestyle=TIP_RANGE_DASH_STYLE,
+            linewidth=2.4,
+            label=f"Tip range (r={TIP_RANGE_RADIUS_NORM:.2f} normalized)",
+        ),
+        Line2D(
+            [0],
+            [0],
+            marker="D",
+            linestyle="None",
+            markerfacecolor=DISTAL_TURN_COLOR,
+            markeredgecolor=DISTAL_TURN_COLOR,
+            markeredgewidth=0.0,
             markersize=12,
-            markeredgewidth=2.2,
-            label="Tip used in current workflow",
+            label="Distal turning point",
         ),
         Line2D(
             [0],
@@ -238,20 +371,9 @@ def save_legend(output_dir):
             markersize=10,
             label="Longest point from root",
         ),
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            linestyle="None",
-            markerfacecolor="#1565ff",
-            markeredgecolor="#1565ff",
-            markeredgewidth=0.0,
-            markersize=13.5,
-            label="Algorithm-detected point",
-        ),
     ]
 
-    fig, ax = plt.subplots(figsize=(6.6, 2.6))
+    fig, ax = plt.subplots(figsize=(7.6, 3.6))
     ax.axis("off")
     ax.legend(
         handles=handles,
@@ -288,6 +410,11 @@ def write_summary(rows, output_dir):
         "algorithm_tip_y",
         "current_tip_x",
         "current_tip_y",
+        "tip_range_radius_norm",
+        "tip_range_radius_px",
+        "te_max_curv_x_norm",
+        "distal_turn_x",
+        "distal_turn_y",
     ]
 
     with summary_path.open("w", newline="", encoding="utf-8") as f:
@@ -311,9 +438,11 @@ def main():
     saved_paths = []
 
     for name in TARGET_NAMES:
-        image_path = IMPORT_DIR / f"{name}.png"
-        if not image_path.exists():
-            raise FileNotFoundError(f"Target image not found: {image_path}")
+        image_path = resolve_image_path(name)
+        if image_path is None:
+            raise FileNotFoundError(
+                f"Target image not found: tried {IMPORT_DIR} and {IMPORT_FALLBACK_DIR}"
+            )
 
         data = extract_tip_check_data(image_path)
         saved_paths.append(plot_tip_check(data, name, OUTPUT_DIR))
@@ -327,6 +456,15 @@ def main():
         row.update(point_columns("longest_tip", data["longest_tip"]))
         row.update(point_columns("algorithm_tip", data["detected_tip"]))
         row.update(point_columns("current_tip", data["current_tip"]))
+
+        distal = data["distal"]
+        row["tip_range_radius_norm"] = f"{TIP_RANGE_RADIUS_NORM:.6f}"
+        row["tip_range_radius_px"] = f"{TIP_RANGE_RADIUS_NORM * distal['span_px']:.6f}"
+        row["te_max_curv_x_norm"] = f"{distal['te_max_curv_x']:.6f}"
+        turn_point_px = distal["turn_point_px"]
+        row["distal_turn_x"] = "" if turn_point_px is None else f"{turn_point_px[0]:.6f}"
+        row["distal_turn_y"] = "" if turn_point_px is None else f"{turn_point_px[1]:.6f}"
+
         summary_rows.append(row)
 
     legend_path = save_legend(OUTPUT_DIR)

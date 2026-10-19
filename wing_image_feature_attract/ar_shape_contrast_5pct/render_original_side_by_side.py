@@ -1,10 +1,3 @@
-"""Render representative AR pairs as separate, unnormalized black silhouettes.
-
-The AR values and pair selection come from ``ar_shape_contrast_results.json``.
-Only the figure presentation changes: each specimen is re-extracted in its
-original image coordinates and placed in an independent left/right panel.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -37,12 +30,7 @@ FIGURE_DPI = 600
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Render the selected AR pairs as left/right original-coordinate "
-            "black wing silhouettes."
-        )
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument("results_json", type=Path)
     parser.add_argument("output_dir", type=Path)
     parser.add_argument(
@@ -54,13 +42,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--node-exe",
         type=Path,
         default=None,
-        help="Optional Node.js executable for automatic Excel creation.",
     )
     parser.add_argument(
         "--preview-dir",
         type=Path,
         default=None,
-        help="Optional workbook-render verification directory.",
     )
     parser.add_argument("--dpi", type=int, default=FIGURE_DPI)
     args = parser.parse_args(argv)
@@ -115,7 +101,6 @@ def draw_black_silhouette(
     height = max(max_y - min_y, 1e-9)
     pad = 0.065 * max(width, height)
     ax.set_xlim(min_x - pad, max_x + pad)
-    # Image-coordinate presentation: y increases downward, as in the source.
     ax.set_ylim(max_y + pad, min_y - pad)
     ax.set_aspect("equal", adjustable="box")
     ax.axis("off")
@@ -132,7 +117,6 @@ def draw_black_silhouette(
 
 
 def format_panel_title(panel_label: str, name: str) -> tuple[str, int]:
-    """Keep titles large while wrapping long specimen names cleanly."""
     if len(name) <= 18:
         return f"({panel_label}) {name}", 28
     if len(name) <= 22:

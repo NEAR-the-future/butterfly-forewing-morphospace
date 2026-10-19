@@ -19,7 +19,6 @@ try:
 except ValueError:
     KMEANS_SAFE_THREADS = 2
 os.environ["OMP_NUM_THREADS"] = str(SEARCH_OMP_THREADS)
-# Do not globally set MKL_NUM_THREADS!! UMAP's spectral initialisation uses it.
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 warnings.filterwarnings(
     "ignore",
@@ -55,12 +54,7 @@ ARTIFACT_SCHEMA_VERSION = 1
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description=(
-            "Search feature subsets and UMAP + KMeans parameters using only the "
-            "reference workbook, then save a frozen model artifact for unseen-row transform."
-        )
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=DEFAULT_REFERENCE_PATH)
     parser.add_argument("--input-sheet", default=None)
     parser.add_argument("--guard-input", type=Path, default=DEFAULT_GUARD_INPUT_PATH)
@@ -72,7 +66,6 @@ def parse_args():
     parser.add_argument(
         "--feature-cols",
         default=None,
-        help="Comma-separated features. Default: all numeric columns except label/name.",
     )
     parser.add_argument("--min-features", type=int, default=6)
     parser.add_argument("--max-features", type=int, default=11)
@@ -83,10 +76,6 @@ def parse_args():
         "--search-mode",
         choices=["fast", "full"],
         default="fast",
-        help=(
-            "fast uses a paper-oriented 30-UMAP/120-KMeans grid per feature set; "
-            "full uses the original preset grid (110/770 for balanced)."
-        ),
     )
     parser.add_argument("--param-preset", choices=["quick", "balanced", "dense"], default="balanced")
     parser.add_argument("--umap-n-neighbors-list", default="auto")
@@ -96,16 +85,11 @@ def parse_args():
         "--umap-init",
         choices=["random", "spectral"],
         default="random",
-        help="UMAP initialisation. random is faster and avoids spectral solver failures.",
     )
     parser.add_argument(
         "--umap-n-epochs",
         type=int,
         default=None,
-        help=(
-            "UMAP optimisation epochs. Default: 300 in fast mode; "
-            "the umap-learn default in full mode."
-        ),
     )
     parser.add_argument("--target-cluster-min", type=int, default=4)
     parser.add_argument("--target-cluster-max", type=int, default=7)
@@ -130,7 +114,6 @@ def parse_args():
         "--use-initial-edge-filter",
         dest="use_initial_edge_filter",
         action="store_true",
-        help="Optionally remove reference edge rows before UMAP fitting (default: keep all 383 rows).",
     )
     parser.add_argument("--no-initial-edge-filter", dest="use_initial_edge_filter", action="store_false")
     parser.add_argument("--initial-edge-points-to-remove", type=int, default=20)
@@ -140,16 +123,11 @@ def parse_args():
         "--progress-every",
         type=int,
         default=1,
-        help="Print a feature-set start/end summary every N feature sets; 0 disables it.",
     )
     parser.add_argument(
         "--evaluation-progress-every",
         type=int,
         default=0,
-        help=(
-            "Optional detailed logging: print every N UMAP/KMeans evaluations. "
-            "Default 0 keeps one summary line per feature set."
-        ),
     )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
@@ -165,7 +143,7 @@ def read_table(path, sheet=None):
 
 
 def resolve_search_parameter_grid(n_samples, args):
-    
+
     if args.search_mode == "full":
         return base.resolve_parameter_grid(n_samples, args)
 
@@ -184,7 +162,7 @@ def resolve_search_parameter_grid(n_samples, args):
     )
 
     if explicit_min_dist is None:
-        
+
         min_dist = [0.0, 0.01, 0.05, 0.10, 0.20]
     else:
         min_dist = sorted(set(float(value) for value in explicit_min_dist))
@@ -230,7 +208,6 @@ def sha256_array(values):
 
 
 def fit_reference_preprocessor(values):
-    """Fit preprocessing on reference observations only."""
     values = np.asarray(values, dtype=float)
     values = np.where(np.isfinite(values), values, np.nan)
     imputer = SimpleImputer(strategy="median")
@@ -355,7 +332,7 @@ def evaluate_transform_neighbor_guard(
 
 
 def evaluate_kmeans_batch_with_safe_threads(coordinates, cluster_counts, args):
-    
+
     evaluations = []
     with threadpool_limits(limits=KMEANS_SAFE_THREADS, user_api="openmp"):
         for clusters in cluster_counts:

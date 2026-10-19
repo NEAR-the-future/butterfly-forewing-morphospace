@@ -95,8 +95,7 @@ def extract_edge_profile(image, red_dot_coords=None):
     edges = cv2.Canny(gray.astype(np.uint8), 30, 100)
 
     red_mask = make_red_mask(image)
-    red_mask = cv2.dilate(red_mask, np.ones((9, 9), np.uint8), iterations=1)  
-    #edges[red_mask > 0] = 0
+    red_mask = cv2.dilate(red_mask, np.ones((9, 9), np.uint8), iterations=1)
 
     gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
     gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
@@ -108,13 +107,13 @@ def extract_edge_profile(image, red_dot_coords=None):
     h, w = gray.shape
     edge_points = []
 
-  
+
     ys, xs = np.where(edges > 0)
     for x, y in zip(xs, ys):
         dx = nx[y, x]
         dy = ny[y, x]
 
-        
+
         def sample(t):
             xx = x + dx * t
             yy = y + dy * t
@@ -137,10 +136,10 @@ def extract_edge_profile(image, red_dot_coords=None):
 
         edge_points.append((float(xs_sub), float(ys_sub)))
 
-    
+
     edge_points = sort_points_by_contour(edges, edge_points, start_xy=red_dot_coords)
 
-    
+
     return edge_points, red_dot_coords
 
 
@@ -205,11 +204,9 @@ def sort_points_by_contour(edges, subpixel_points, start_xy=None):
     if not contours:
         return []
 
-    # Pick the largest external contour
     c = max(contours, key=cv2.contourArea)
-    contour_pts = c[:, 0, :]  
+    contour_pts = c[:, 0, :]
 
-    # Rotate start to be closest to start_xy (red dot)
     contour_list = [(float(x), float(y)) for x, y in contour_pts]
     if start_xy is not None:
         contour_list = _rotate_points_to_start(contour_list, start_xy)
@@ -217,10 +214,9 @@ def sort_points_by_contour(edges, subpixel_points, start_xy=None):
     if not subpixel_points:
         return contour_list
 
-    sp = np.asarray(subpixel_points, dtype=float)  # (M,2)
+    sp = np.asarray(subpixel_points, dtype=float)
     ordered = []
     for (x, y) in contour_list:
-        # vectorized nearest neighbor (O(N*M) but usually fine)
         d2 = (sp[:, 0] - x) ** 2 + (sp[:, 1] - y) ** 2
         j = int(np.argmin(d2))
         ordered.append((float(sp[j, 0]), float(sp[j, 1])))
@@ -235,14 +231,14 @@ def sort_points_by_contour(edges, subpixel_points, start_xy=None):
 
 def transform_points_by_span(contour, root, tip, force_y_positive=True, normalize_span=True):
     contour_translated = contour - root
-    
+
 
     span_x = tip[0] - root[0]
     span_y = tip[1] - root[1]
-    angle = np.arctan2(span_y, span_x)  
+    angle = np.arctan2(span_y, span_x)
     M = cv2.getRotationMatrix2D((0, 0), np.degrees(angle), 1.0)
     contour_rotated = cv2.transform(contour_translated.reshape(-1, 1, 2), M).reshape(-1, 2)
-    
+
     if normalize_span:
         span_len = np.linalg.norm(tip - root)
         contour_normalized = contour_rotated / span_len
@@ -250,6 +246,6 @@ def transform_points_by_span(contour, root, tip, force_y_positive=True, normaliz
         contour_normalized = contour_rotated
 
     if force_y_positive and np.mean(contour_normalized[:, 1]) < 0:
-        contour_normalized[:, 1] *= -1  # make sure y > 0
-    
+        contour_normalized[:, 1] *= -1
+
     return contour_normalized

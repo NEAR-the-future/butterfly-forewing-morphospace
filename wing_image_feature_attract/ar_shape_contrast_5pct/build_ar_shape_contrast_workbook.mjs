@@ -66,9 +66,6 @@ const representative = workbook.worksheets.add("Representative_pairs");
 const allMatches = workbook.worksheets.add("All_matches");
 const arValues = workbook.worksheets.add("AR_values");
 
-// ---------------------------------------------------------------------------
-// Method and run metadata
-// ---------------------------------------------------------------------------
 const parameterRows = [
   ["参数或统计量", "值", "说明"],
   [
@@ -140,9 +137,6 @@ method.freezePanes.freezeRows(1);
 method.showGridLines = false;
 addTable(method, `A1:C${parameterRows.length}`, "MethodTable", "TableStyleMedium2");
 
-// ---------------------------------------------------------------------------
-// One row per wing. AR is formula-driven from normalized area.
-// ---------------------------------------------------------------------------
 const arHeaders = [
   "样本序号",
   "蝴蝶名称",
@@ -219,9 +213,6 @@ arValues.freezePanes.freezeRows(1);
 arValues.freezePanes.freezeColumns(3);
 arValues.showGridLines = false;
 
-// ---------------------------------------------------------------------------
-// All pairs within the requested threshold.
-// ---------------------------------------------------------------------------
 const matchHeaders = [
   "配对ID",
   "蝴蝶A名称",
@@ -320,9 +311,6 @@ allMatches.freezePanes.freezeRows(1);
 allMatches.freezePanes.freezeColumns(3);
 allMatches.showGridLines = false;
 
-// ---------------------------------------------------------------------------
-// Representative pairs, formula-linked to All_matches.
-// ---------------------------------------------------------------------------
 const idToMatch = new Map(matches.map((row) => [Number(row.pair_id), row]));
 const representativeMatches = representativeIds
   .map((id) => idToMatch.get(Number(id)))
@@ -431,9 +419,6 @@ representative.freezePanes.freezeRows(1);
 representative.freezePanes.freezeColumns(3);
 representative.showGridLines = false;
 
-// ---------------------------------------------------------------------------
-// Compact verification and visual rendering of every sheet.
-// ---------------------------------------------------------------------------
 console.log((await workbook.inspect({
   kind: "table",
   range: `Method!A1:C${parameterRows.length}`,

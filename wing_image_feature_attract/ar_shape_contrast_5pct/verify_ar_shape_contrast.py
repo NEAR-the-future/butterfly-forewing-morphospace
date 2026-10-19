@@ -1,5 +1,3 @@
-"""Compact integrity checks for an AR-shape-contrast output directory."""
-
 from __future__ import annotations
 
 import argparse

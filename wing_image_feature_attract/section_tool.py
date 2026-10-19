@@ -1,4 +1,3 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,21 +17,20 @@ def wing_section(edge_points, wing_root, wing_tip, num_sections=10):
     if not leading_edge or not trailing_edge:
         print("Warning: Could not properly split edges")
         return None, None
-    
+
 
     span_points = interpolate_span_line(wing_root, wing_tip, num_sections)
 
     span_vector = np.array([wing_tip[0] - wing_root[0], wing_tip[1] - wing_root[1]])
-    span_length = np.linalg.norm(span_vector)   
+    span_length = np.linalg.norm(span_vector)
     span_dir = span_vector / span_length
-    perp_dir = np.array([-span_dir[1], span_dir[0]])  # 90 degree rotation
-    
+    perp_dir = np.array([-span_dir[1], span_dir[0]])
+
 
     leading_edge_sections = []
     trailing_edge_sections = []
 
     for i, span_pt in enumerate(span_points):
-        # For the first and last points, use exact root/tip
         if i == 0:
             leading_edge_sections.append(wing_root)
             trailing_edge_sections.append(wing_root)
@@ -42,7 +40,6 @@ def wing_section(edge_points, wing_root, wing_tip, num_sections=10):
             trailing_edge_sections.append(wing_tip)
             continue
 
-        # Create chord line perpendicular to span at this point
         le_intersection = find_chord_intersection(span_pt, span_dir, perp_dir, leading_edge, wing_root)
         te_intersection = find_chord_intersection(span_pt, span_dir, perp_dir, trailing_edge, wing_root)
 
@@ -51,13 +48,13 @@ def wing_section(edge_points, wing_root, wing_tip, num_sections=10):
             leading_edge_sections.append(le_intersection)
             trailing_edge_sections.append(te_intersection)
         else:
-            
+
             print(f"Warning: Could not find exact intersection for section {i}")
             if le_intersection is None:
                 le_intersection = find_nearest_point_on_edge(span_pt, leading_edge)
             if te_intersection is None:
                 te_intersection = find_nearest_point_on_edge(span_pt, trailing_edge)
-            
+
             leading_edge_sections.append(le_intersection)
             trailing_edge_sections.append(te_intersection)
 
@@ -65,11 +62,6 @@ def wing_section(edge_points, wing_root, wing_tip, num_sections=10):
 
 
 def check_edge(edge_points, leading_edge, trailing_edge, wing_root, wing_tip):
-    """
-    Visual check of edge split in IMAGE (pixel) coordinate system:
-    - Origin at top-left
-    - y axis points downward
-    """
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -101,7 +93,7 @@ def check_edge(edge_points, leading_edge, trailing_edge, wing_root, wing_tip):
 
 
     ax.set_aspect('equal', adjustable='box')
-    ax.invert_yaxis()         
+    ax.invert_yaxis()
     ax.set_xlabel('x (pixel)')
     ax.set_ylabel('y (pixel)')
     ax.set_title('Edge split check (image coordinate system)')
@@ -111,7 +103,7 @@ def check_edge(edge_points, leading_edge, trailing_edge, wing_root, wing_tip):
 
     plt.tight_layout()
     plt.show()
-        
+
 def debug_split_edges(edge_points, leading_edge, trailing_edge, wing_root, wing_tip, show_plot=True):
 
     if not edge_points or not leading_edge or not trailing_edge:
@@ -175,9 +167,8 @@ def find_chord_intersection(span_point, span_dir, perp_dir, edge_points, wing_ro
     perp_dir = np.array(perp_dir, dtype=float)
 
     u0 = float(np.dot(span_point - root, span_dir))
-    v_span = float(np.dot(span_point - root, perp_dir))  # should be ~0 if span_point lies on span line
+    v_span = float(np.dot(span_point - root, perp_dir))
 
-    # determine dominant side of this edge in chordwise direction (v)
     step = max(1, len(edge_points) // 200)
     v_samples = []
     for p in edge_points[::step]:
@@ -189,7 +180,7 @@ def find_chord_intersection(span_point, span_dir, perp_dir, edge_points, wing_ro
     else:
         expected_sign = 0
 
-    candidates = []  # (dist_along_chord, v, (x,y))
+    candidates = []
     for i in range(len(edge_points) - 1):
         p1 = np.array(edge_points[i], dtype=float)
         p2 = np.array(edge_points[i + 1], dtype=float)
@@ -200,7 +191,6 @@ def find_chord_intersection(span_point, span_dir, perp_dir, edge_points, wing_ro
         d1 = u1 - u0
         d2 = u2 - u0
 
-        # segment crosses u0 (or touches)
         if d1 == 0.0 and d2 == 0.0:
             v1 = float(np.dot(p1 - root, perp_dir))
             v2 = float(np.dot(p2 - root, perp_dir))
@@ -210,7 +200,6 @@ def find_chord_intersection(span_point, span_dir, perp_dir, edge_points, wing_ro
             continue
 
         if d1 * d2 <= 0.0 and (u2 != u1):
-            # linear interpolation by u
             t = (u0 - u1) / (u2 - u1)
             if 0.0 <= t <= 1.0:
                 inter = p1 + t * (p2 - p1)
@@ -220,7 +209,6 @@ def find_chord_intersection(span_point, span_dir, perp_dir, edge_points, wing_ro
     if not candidates:
         return None
 
-    # prefer candidates on the dominant side of this edge
     if expected_sign != 0:
         filtered = []
         for distc, v, pt in candidates:
@@ -252,21 +240,18 @@ def split_edges_by_span(edge_points, wing_root, wing_tip):
     root_idx = find_nearest_index(edge_points, wing_root)
     tip_idx = find_nearest_index(edge_points, wing_tip)
 
-  
+
     if root_idx > tip_idx:
         root_idx, tip_idx = tip_idx, root_idx
 
-    # Two possible paths along the closed contour
     segment1 = edge_points[root_idx:tip_idx + 1]
     segment2 = edge_points[tip_idx:] + edge_points[:root_idx + 1]
 
-    # Reverse segment2 so both go root to tip
     segment2 = segment2[::-1]
 
     len1 = polyline_length(segment1)
     len2 = polyline_length(segment2)
 
-    # Shorter = leading edge, longer = trailing edge
     if len1 <= len2:
         leading_edge = segment1
         trailing_edge = segment2
@@ -279,13 +264,13 @@ def split_edges_by_span(edge_points, wing_root, wing_tip):
 
 def interpolate_span_line(wing_root, wing_tip, num_points):
     points = []
-    
+
     for i in range(num_points + 1):
         t = i / num_points
         x = wing_root[0] + t * (wing_tip[0] - wing_root[0])
         y = wing_root[1] + t * (wing_tip[1] - wing_root[1])
         points.append((x, y))
-    
+
     return points
 
 
@@ -295,7 +280,7 @@ def find_nearest_point_on_edge(point, edge_points):
 
     if not edge_points:
         return None
-    
+
     distances = [((p[0] - point[0])**2 + (p[1] - point[1])**2) for p in edge_points]
     nearest_idx = np.argmin(distances)
     return edge_points[nearest_idx]
@@ -313,17 +298,15 @@ def sort_points_along_curve(points, start_point, end_point):
 
     if len(points) <= 2:
         return points
-    
-    # Find start and end indices
+
     start_idx = find_nearest_index(points, start_point)
     end_idx = find_nearest_index(points, end_point)
-    
-    # Reorder points from start to end
+
     if start_idx <= end_idx:
         sorted_points = points[start_idx:end_idx + 1]
     else:
         sorted_points = points[start_idx:] + points[:end_idx + 1]
-    
+
     return sorted_points
 
 
@@ -341,8 +324,7 @@ def wing_rotate_scale(le_points, te_points, wing_root, wing_tip):
 
     span_vector = tip_translated
     span_length = np.linalg.norm(span_vector)
-    
-    # Compute rotation angle (-angle to align span with +x)
+
     angle = -np.arctan2(span_vector[1], span_vector[0])
 
     cos_a, sin_a = np.cos(angle), np.sin(angle)
@@ -355,19 +337,17 @@ def wing_rotate_scale(le_points, te_points, wing_root, wing_tip):
     le_scaled = le_rotated / span_length
     te_scaled = te_rotated / span_length
     tip_scaled = tip_rotated / span_length
-    root_scaled = np.array([0.0, 0.0])  # Root stays at origin
+    root_scaled = np.array([0.0, 0.0])
 
-    # If tip's x is negative, rotate 180 degrees around origin
     if tip_scaled[0] < 0:
-        le_scaled = -le_scaled  
+        le_scaled = -le_scaled
         te_scaled = -te_scaled
         root_scaled = -root_scaled
         tip_scaled = -tip_scaled
 
-    # Find minimum coordinates of all points
     all_points = np.vstack([le_scaled, te_scaled, [root_scaled], [tip_scaled]])
     min_x, min_y = np.min(all_points, axis=0)
-    
+
     if min_x < 0 or min_y < 0:
         le_scaled = le_scaled - [min_x, min_y]
         te_scaled = te_scaled - [min_x, min_y]
@@ -378,11 +358,10 @@ def wing_rotate_scale(le_points, te_points, wing_root, wing_tip):
     te_transformed = [tuple(p) for p in te_scaled]
     root_transformed = tuple(root_scaled)
     tip_transformed = tuple(tip_scaled)
-    
+
     final_tip = np.array(tip_transformed)
     final_root = np.array(root_transformed)
-    
-    # Ensure root to tip has positive x difference
+
     if final_tip[0] <= final_root[0]:
         print("Warning: Span not aligned with positive x-axis after transformation")
 

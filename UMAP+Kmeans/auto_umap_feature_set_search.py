@@ -61,12 +61,7 @@ PIE_EMPTY_FONT_SIZE = 25
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description=(
-            "Enumerate feature subsets and automatically search UMAP + KMeans "
-            "parameters with a score aligned to explore_dimensionless_feature_sets.py."
-        )
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=Path("summary_11.xlsx"))
     parser.add_argument("--output-dir", type=Path, default=Path("auto_umap_feature_search"))
     parser.add_argument("--label-col", default="Type Number")
@@ -74,16 +69,13 @@ def parse_args():
     parser.add_argument(
         "--feature-cols",
         default=None,
-        help="Comma-separated feature column list. Default: all numeric columns except label/name.",
     )
 
-    # Default is intentionally small for the first timing run
     parser.add_argument("--min-features", type=int, default=10)
     parser.add_argument("--max-features", type=int, default=11)
     parser.add_argument(
         "--feature-counts",
         default=None,
-        help="Comma-separated feature counts, e.g. 10,11 or 6,7,8,9,10,11. Overrides min/max.",
     )
     parser.add_argument("--max-feature-combinations", type=int, default=None)
 
@@ -91,17 +83,14 @@ def parse_args():
     parser.add_argument(
         "--umap-n-neighbors-list",
         default="auto",
-        help="Comma/range list such as 2-10,15, or auto.",
     )
     parser.add_argument(
         "--umap-min-dist-list",
         default="auto",
-        help="Comma list such as 0,0.01,0.05,0.1,0.2, or auto.",
     )
     parser.add_argument(
         "--kmeans-n-clusters-list",
         default="auto",
-        help="Comma/range list such as 3-9, or auto.",
     )
 
     parser.add_argument("--target-cluster-min", type=int, default=4)
