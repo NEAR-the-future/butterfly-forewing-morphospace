@@ -1,0 +1,8 @@
+PCA baseline: 383 specimens; 11 features.
+Non-finite values were treated as missing and imputed with feature-wise medians. Features were then standardized to zero mean and unit population variance using StandardScaler, following the preprocessing sequence used in the UMAP workflow. Constant features, if any, remain zero after centering.
+The imputer and scaler were fitted on all 383 input specimens. Outliers removed: 0.
+PC1 explains 28.21% and PC2 explains 22.59% of the total variance in the standardized feature matrix (cumulative: 50.79%).
+2D PCA KMeans: k=3, silhouette=0.390051.
+3D PCA KMeans: k=10, silhouette=0.295466.
+KMeans selects k from 2 through 19 by maximum Euclidean silhouette score (n_init=50, random_state=0).
+This aligns preprocessing only; it does not establish identical feature selection, specimen filtering, or clustering settings between PCA and UMAP.
